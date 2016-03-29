@@ -42,6 +42,7 @@ class myGroupBox(QGroupBox):
         date, val = self.parent.database.getLastData(tableName, req)
         if (date, val) == (-2, -2) or (date, val) == (-3, -3):
             self.parent.showError(date)
+            self.watcher_data.stop()
         else:
             self.setTitle(deviceName.capitalize() + "    " + date)
 

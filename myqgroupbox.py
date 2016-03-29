@@ -71,7 +71,7 @@ class myGroupBox(QGroupBox):
             self.prev_date = date
             self.prev_time = datetime.datetime.now()
 
-        if tableName == "xcu_r1__gatevalve":
+        if tableName == "%s__gatevalve"%self.parent.currActor:
             if val[0] == 253:
                 self.dict_label["val1"].setText("OPENED")
             else:

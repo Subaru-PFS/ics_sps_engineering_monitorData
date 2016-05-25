@@ -31,7 +31,8 @@ class mainWindow(QMainWindow):
         self.low_bound = {}
         self.high_bound = {}
         self.device_dict = {}
-        self.readCfg(path.split('ics_sps_engineering_monitorData')[0]+'ics_sps_engineering_Lib_dataQuery/config/curve_config.cfg')
+        self.config_path = path.split('ics_sps_engineering_monitorData')[0]+'ics_sps_engineering_Lib_dataQuery/config/'
+        self.readCfg(self.config_path+'curve_config.cfg')
         self.initialize()
         self.getToolbar()
 

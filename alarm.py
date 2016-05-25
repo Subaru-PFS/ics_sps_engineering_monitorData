@@ -20,7 +20,7 @@ class alarmChecker(QWidget):
     def loadAlarm(self):
         self.list_alarm = []
         config = ConfigParser.ConfigParser()
-        config.readfp(open(self.parent.os_path + "/config/alarm.cfg"))
+        config.readfp(open(self.parent.os_path.split('ics_sps_engineering_monitorData')[0]+'ics_sps_engineering_Lib_dataQuery/config/alarm.cfg'))
         for a in config.sections():
             dict = {"tableName": a}
             for b in config.options(a):

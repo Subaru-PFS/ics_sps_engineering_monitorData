@@ -31,7 +31,7 @@ class mainWindow(QMainWindow):
         self.low_bound = {}
         self.high_bound = {}
         self.device_dict = {}
-        self.readCfg(self.os_path + "/config/curve_config.cfg")
+        self.readCfg(path.split('ics_sps_engineering_monitorData')[0]+'ics_sps_engineering_Lib_dataQuery/config/curve_config.cfg')
         self.initialize()
         self.getToolbar()
 
@@ -49,7 +49,7 @@ class mainWindow(QMainWindow):
         self.menubar = self.menuBar()
         self.about_action = QAction('About', self)
         self.about_action.triggered.connect(
-            partial(self.showInformation, "MonitorActor v0.3 working with Extract data v0.3"))
+            partial(self.showInformation, "MonitorActor v0.4 working with Extract data v0.4"))
         self.helpMenu = self.menubar.addMenu('&?')
         self.helpMenu.addAction(self.about_action)
         self.width = 1152
@@ -160,7 +160,7 @@ class mainWindow(QMainWindow):
         config.readfp(open(path))
         for a in config.sections():
             self.device_dict[a]=""
-            self.tab.append([a])
+            self.tab.append({"tableName":a})
             for b in config.options(a):
                 if b == "lower_bound":
                     keys = config.get(a, "key").split(',')
@@ -173,7 +173,7 @@ class mainWindow(QMainWindow):
                     pass
 
                 else:
-                    self.tab[-1].append(config.get(a, b))
+                    self.tab[-1][b] = config.get(a, b)
 
     def getAlarm(self):
 
@@ -183,10 +183,10 @@ class mainWindow(QMainWindow):
     def getGroupBox(self):
 
         for i, boxes in enumerate(self.tab):
-            tableName = boxes[0]
-            deviceName = boxes[1]
-            keys = boxes[2].split(',')
-            labels = boxes[3].split(',')
+            tableName = boxes["tableName"]
+            deviceName = boxes["label_device"]
+            keys = boxes["key"].split(',')
+            labels = boxes["label"].split(',')
             groupBox = myGroupBox(self, tableName, deviceName, keys, labels)
             self.global_layout.addWidget(groupBox, (i + 3) // 3, (i + 3) % 3)
 

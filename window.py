@@ -10,6 +10,7 @@ try:
     Wiki = True
 except ImportError:
     Wiki = False
+import os
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel, QPushButton, \
     QMessageBox, QAction, QDialog, QDialogButtonBox, QLineEdit, QCheckBox, QProgressBar, QApplication, QProgressDialog
@@ -32,7 +33,7 @@ class mainWindow(QMainWindow):
         self.high_bound = {}
         self.device_dict = {}
         self.config_path = path.split('ics_sps_engineering_monitorData')[0]+'ics_sps_engineering_Lib_dataQuery/config/'
-        self.readCfg(self.config_path+'curve_config.cfg')
+        self.readCfg(self.config_path)
         self.initialize()
         self.getToolbar()
 
@@ -50,7 +51,7 @@ class mainWindow(QMainWindow):
         self.menubar = self.menuBar()
         self.about_action = QAction('About', self)
         self.about_action.triggered.connect(
-            partial(self.showInformation, "MonitorActor v0.4 working with Extract data v0.4"))
+            partial(self.showInformation, "MonitorActor v0.5 working with lib_DataQuery v0.5\n\r made for PFS by aLF"))
         self.helpMenu = self.menubar.addMenu('&?')
         self.helpMenu.addAction(self.about_action)
         self.width = 1152
@@ -157,25 +158,37 @@ class mainWindow(QMainWindow):
             self.tabCsv.remove(device)
 
     def readCfg(self, path):
+        res=[]
+        all_file = next(os.walk(path))[-1]
+        for f in all_file:
+            config = ConfigParser.ConfigParser()
+            config.readfp(open(path+f))
+            try:
+                date = config.get('config_date', 'date')
+                res.append((f, dt.datetime.strptime(date, "%d/%m/%Y")))
+            except ConfigParser.NoSectionError:
+                pass
+        res.sort(key=lambda tup: tup[1])
         config = ConfigParser.ConfigParser()
-        config.readfp(open(path))
+        config.readfp(open(path+res[-1][0]))
         for a in config.sections():
-            self.device_dict[a]=""
-            self.tab.append({"tableName":a})
-            for b in config.options(a):
-                if b == "lower_bound":
-                    keys = config.get(a, "key").split(',')
-                    minimums = config.get(a, "lower_bound").split(',')
-                    maximums = config.get(a, "higher_bound").split(',')
-                    for low_bound, high_bound, key in zip(minimums, maximums, keys):
-                        self.low_bound[a + key] = float(low_bound)
-                        self.high_bound[a + key] = float(high_bound)
-                elif b == "higher_bound":
-                    pass
+            if a != 'config_date':
+                self.device_dict[a]=""
+                self.tab.append({"tableName":a})
+                for b in config.options(a):
+                    if b == "lower_bound":
+                        keys = config.get(a, "key").split(',')
+                        minimums = config.get(a, "lower_bound").split(',')
+                        maximums = config.get(a, "higher_bound").split(',')
+                        for low_bound, high_bound, key in zip(minimums, maximums, keys):
+                            self.low_bound[a + key] = float(low_bound)
+                            self.high_bound[a + key] = float(high_bound)
+                    elif b == "higher_bound":
+                        pass
 
-                else:
-                    self.tab[-1][b] = config.get(a, b)
-
+                    else:
+                        self.tab[-1][b] = config.get(a, b)
+        #print self.tab
     def getAlarm(self):
 
         self.alarm_widget = alarmChecker(parent=self)

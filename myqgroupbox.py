@@ -27,7 +27,7 @@ class myGroupBox(QGroupBox):
         self.watcher_data.start()
 
         for i, (labs, keys) in enumerate(zip(labels, keys)):
-            self.grid.addWidget(QLabel(labs), i, 0)
+            self.grid.addWidget(QLabel(labs.strip()), i, 0)
             label_value = QLineEdit("")
             self.setColorLine(label_value, "white")
             self.grid.addWidget(label_value, i, 1)

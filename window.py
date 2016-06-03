@@ -11,9 +11,9 @@ try:
 except ImportError:
     Wiki = False
 import os
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtWidgets import QWidget, QMainWindow, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel, QPushButton, \
-    QMessageBox, QAction, QDialog, QDialogButtonBox, QLineEdit, QCheckBox, QProgressBar, QApplication, QProgressDialog
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QGridLayout, QLabel, QMessageBox, QAction, QDialog, QDialogButtonBox, QLineEdit, QCheckBox, \
+    QApplication, QProgressDialog
 from PyQt5.QtGui import QIcon
 from alarm import alarmChecker
 from myqgroupbox import myGroupBox
@@ -21,9 +21,9 @@ import datetime as dt
 
 
 class mainWindow(QMainWindow):
-    def __init__(self, path, ip, port):
+    def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-
+        self.divcoeff = 3 if display[1]>1400 else 4
         self.db = databaseManager(ip, port)
         self.networkError = False
         self.os_path = path
@@ -36,6 +36,8 @@ class mainWindow(QMainWindow):
         self.readCfg(self.config_path)
         self.initialize()
         self.getToolbar()
+
+
 
     def initialize(self):
 
@@ -54,11 +56,8 @@ class mainWindow(QMainWindow):
             partial(self.showInformation, "MonitorActor v0.5 working with lib_DataQuery v0.5\n\r made for PFS by aLF"))
         self.helpMenu = self.menubar.addMenu('&?')
         self.helpMenu.addAction(self.about_action)
-        self.width = 1152
-        self.height = 864
         self.center = [300, 300]
         self.title = " AIT-PFS Monitoring CU"
-        self.resize(self.width, self.height)
         self.move(self.center[0], self.center[1])
         self.setWindowTitle(self.title)
         self.show()
@@ -89,8 +88,8 @@ class mainWindow(QMainWindow):
         grid.addWidget(QLabel("To"), 0, 2)
         grid.addWidget(line_edit_end, 0, 3)
         for i, boxes in enumerate(self.tab):
-            checkbox = QCheckBox(boxes[1])
-            checkbox.stateChanged.connect(partial(self.csvUpdateTab, checkbox, [boxes[0], boxes[2], boxes[3]]))
+            checkbox = QCheckBox(boxes["label_device"])
+            checkbox.stateChanged.connect(partial(self.csvUpdateTab, checkbox, [boxes["tableName"], boxes["key"], boxes["label"]]))
             checkbox.setCheckState(2)
             grid.addWidget(checkbox, 1 + i, 0, 1, 3)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -188,11 +187,10 @@ class mainWindow(QMainWindow):
 
                     else:
                         self.tab[-1][b] = config.get(a, b)
-        #print self.tab
     def getAlarm(self):
 
         self.alarm_widget = alarmChecker(parent=self)
-        self.global_layout.addWidget(self.alarm_widget,0,0,1,3)
+        self.global_layout.addWidget(self.alarm_widget,0,0,1,self.divcoeff)
 
     def getGroupBox(self):
 
@@ -202,12 +200,12 @@ class mainWindow(QMainWindow):
             keys = boxes["key"].split(',')
             labels = boxes["label"].split(',')
             groupBox = myGroupBox(self, tableName, deviceName, keys, labels)
-            self.global_layout.addWidget(groupBox, (i + 3) // 3, (i + 3) % 3)
+            self.global_layout.addWidget(groupBox, (i + self.divcoeff) // self.divcoeff, (i + self.divcoeff) % self.divcoeff)
 
         self.widget.setLayout(self.global_layout)
         self.global_layout.setRowStretch(0, 1)
         for l in range(1, self.global_layout.rowCount()):
-            self.global_layout.setRowStretch(l, 3)
+            self.global_layout.setRowStretch(l, self.divcoeff)
         self.setCentralWidget(self.widget)
 
 

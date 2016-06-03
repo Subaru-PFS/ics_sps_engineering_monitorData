@@ -1,10 +1,12 @@
-from functools import partial
-import datetime
 import ConfigParser
+import datetime
+import numpy as np
+from functools import partial
 
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QLabel, QMessageBox, QWidget, QSizePolicy
-from PyQt5.QtCore import QTimer, QByteArray, Qt
+from PyQt5.QtCore import QTimer, QByteArray
 from PyQt5.QtGui import QMovie
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QLabel, QMessageBox, QWidget
+
 
 class alarmChecker(QWidget):
     def __init__(self, parent):
@@ -100,7 +102,7 @@ class alarmChecker(QWidget):
     def checkTimeout(self):
         for key, value in self.parent.device_dict.iteritems():
             date, id = self.parent.db.getLastData(key, "id")
-            if type(id) is list:
+            if type(id) is np.ndarray:
                 self.networkError = False
                 id = id[0]
                 if date != self.last_date[key]:
@@ -124,7 +126,7 @@ class alarmChecker(QWidget):
             name = device["tableName"] + device["key"]
             date, val = self.parent.db.getLastData(device["tableName"], device["key"])
 
-            if type(val) is list:
+            if type(val) is np.ndarray:
                 val = val[0]
                 fmt = "{:.5e}" if len(str(val))>8 else "{:.2f}"
                 if float(device["lower_bound"]) <= val < float(device["higher_bound"]):

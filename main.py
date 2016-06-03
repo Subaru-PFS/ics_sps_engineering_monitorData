@@ -12,7 +12,8 @@ from window import mainWindow
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    display = app.desktop().screenGeometry().width(), app.desktop().screenGeometry().height()
     addr = sys.argv[1] if len(sys.argv) > 1 else "localhost"
     port = sys.argv[2] if len(sys.argv) > 2 else 5432
-    w = mainWindow(absolute_path, addr, port)
+    w = mainWindow(display, absolute_path, addr, port)
     sys.exit(app.exec_())

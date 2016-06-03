@@ -23,7 +23,7 @@ import datetime as dt
 class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-        self.divcoeff = 3 if display[1]>1400 else 4
+        self.divcoeff = 3 if display[1]>1100 else 4
         self.db = databaseManager(ip, port)
         self.networkError = False
         self.os_path = path

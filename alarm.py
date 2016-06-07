@@ -22,7 +22,7 @@ class alarmChecker(QWidget):
     def loadAlarm(self):
         self.list_alarm = []
         config = ConfigParser.ConfigParser()
-        config.readfp(open(self.parent.config_path +'alarm.cfg'))
+        config.readfp(open(self.parent.config_path + 'alarm.cfg'))
         for a in config.sections():
             dict = {"tableName": a}
             for b in config.options(a):
@@ -36,7 +36,7 @@ class alarmChecker(QWidget):
 
         self.movie_screen = QLabel()
         # Make label fit the gif
-        self.movie_screen.setFixedSize(80,50)
+        self.movie_screen.setFixedSize(80, 50)
 
         # Add the QMovie object to the label
         self.movie.setCacheMode(QMovie.CacheAll)
@@ -65,7 +65,7 @@ class alarmChecker(QWidget):
 
     def getTimeout(self):
         self.timeout_limit = 90
-        self.list_timeout = []
+        self.list_timeout = [key for key, value in self.parent.device_dict.iteritems()]
         self.last_date = {}
         self.last_time = {}
         for key, value in self.parent.device_dict.iteritems():
@@ -101,46 +101,46 @@ class alarmChecker(QWidget):
 
     def checkTimeout(self):
         for key, value in self.parent.device_dict.iteritems():
-            date, id = self.parent.db.getLastData(key, "id")
-            if type(id) is np.ndarray:
+            return_values = self.parent.db.getLastData(key, "id")
+            if return_values == -5:
+                self.networkError = True
+            elif type(return_values) is int:
+                self.parent.showError(return_values)
+            else:
+                date, id = return_values
                 self.networkError = False
-                id = id[0]
+
                 if date != self.last_date[key]:
+                    if self.last_date[key] != 0:
+                        if key in self.list_timeout:
+                            self.list_timeout.remove(key)
                     self.last_time[key] = datetime.datetime.now()
                     self.last_date[key] = date
-                    if key in self.list_timeout:
-                        self.list_timeout.remove(key)
                 else:
                     if (datetime.datetime.now() - self.last_time[key]).total_seconds() > self.timeout_limit:
                         if key not in self.list_timeout:
                             self.list_timeout.append(key)
-            else:
-                if date not in [-1, -2, -3, -4]:
-                    self.networkError = True
-                else:
-                    self.parent.showError(date)
 
     def checkCriticalValue(self):
 
         for device in self.list_alarm:
             name = device["tableName"] + device["key"]
-            date, val = self.parent.db.getLastData(device["tableName"], device["key"])
-
-            if type(val) is np.ndarray:
-                val = val[0]
-                fmt = "{:.5e}" if len(str(val))>8 else "{:.2f}"
+            return_values = self.parent.db.getLastData(device["tableName"], device["key"])
+            if type(return_values) is not int:
+                date, [val] = return_values
+                fmt = "{:.5e}" if len(str(val)) > 8 else "{:.2f}"
                 if float(device["lower_bound"]) <= val < float(device["higher_bound"]):
                     msg = "%s OK \r %s <= %s < %s" % (
                         device["label"], device["lower_bound"], fmt.format(val), device["higher_bound"])
-                    self.setColor("QPushButton", getattr(self, "alarm_%s"%name), "green")
+                    self.setColor("QPushButton", getattr(self, "alarm_%s" % name), "green")
                 else:
                     msg = "WARNING ! %s OUT OF RANGE \r %s <= %s < %s" % (
                         device["label"], device["lower_bound"], fmt.format(val), device["higher_bound"])
-                    self.setColor("QPushButton", getattr(self, "alarm_%s"%name), "red")
+                    self.setColor("QPushButton", getattr(self, "alarm_%s" % name), "red")
                 setattr(self, "msg_%s" % name, msg)
 
             else:
-                print "code error : %i" % val
+                print "code error : %i" % return_values
 
     def setColor(self, type, widget, color):
         if type == "QLabel":

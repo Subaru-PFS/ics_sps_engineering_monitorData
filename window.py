@@ -5,25 +5,29 @@ import ConfigParser
 from functools import partial
 
 from ics_sps_engineering_Lib_dataQuery import databaseManager
+
 try:
     from tabulate import tabulate
+
     Wiki = True
 except ImportError:
     Wiki = False
 import os
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QGridLayout, QLabel, QMessageBox, QAction, QDialog, QDialogButtonBox, QLineEdit, QCheckBox, \
+from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QGridLayout, QLabel, QMessageBox, QAction, QDialog, \
+    QDialogButtonBox, QLineEdit, QCheckBox, \
     QApplication, QProgressDialog
 from PyQt5.QtGui import QIcon
 from alarm import alarmChecker
 from myqgroupbox import myGroupBox
+import numpy as np
 import datetime as dt
 
 
 class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-        self.divcoeff = 3 if display[1]>1100 else 4
+        self.divcoeff = 3 if display[1] > 1100 else 4
         self.db = databaseManager(ip, port)
         self.networkError = False
         self.os_path = path
@@ -32,23 +36,22 @@ class mainWindow(QMainWindow):
         self.low_bound = {}
         self.high_bound = {}
         self.device_dict = {}
-        self.config_path = path.split('ics_sps_engineering_monitorData')[0]+'ics_sps_engineering_Lib_dataQuery/config/'
+        self.config_path = path.split('ics_sps_engineering_monitorData')[
+                               0] + 'ics_sps_engineering_Lib_dataQuery/config/'
         self.readCfg(self.config_path)
         self.initialize()
         self.getToolbar()
-
-
 
     def initialize(self):
 
         self.widget = QWidget()
         self.global_layout = QGridLayout()
-        self.no_err = self.db.initDatabase()
-        if self.no_err != -1:
+        no_err = self.db.initDatabase()
+        if no_err:
             self.getAlarm()
             self.getGroupBox()
         else:
-            self.showError(self.no_err)
+            self.showError(no_err)
 
         self.menubar = self.menuBar()
         self.about_action = QAction('About', self)
@@ -89,7 +92,8 @@ class mainWindow(QMainWindow):
         grid.addWidget(line_edit_end, 0, 3)
         for i, boxes in enumerate(self.tab):
             checkbox = QCheckBox(boxes["label_device"])
-            checkbox.stateChanged.connect(partial(self.csvUpdateTab, checkbox, [boxes["tableName"], boxes["key"], boxes["label"]]))
+            checkbox.stateChanged.connect(
+                partial(self.csvUpdateTab, checkbox, [boxes["tableName"], boxes["key"], boxes["label"], boxes["unit"]]))
             checkbox.setCheckState(2)
             grid.addWidget(checkbox, 1 + i, 0, 1, 3)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -101,15 +105,16 @@ class mainWindow(QMainWindow):
         d.setLayout(vbox)
 
     def extract2csv(self, d, begin, end):
+        end_id = np.inf if str(end.text())=="Now" else str(end.text())
         fail = []
-        progress = QProgressDialog("Extracting data", "Abort Extracting", 0, len(self.tabCsv)-1)
-        progress.setFixedSize(300,200)
+        progress = QProgressDialog("Extracting data", "Abort Extracting", 0, len(self.tabCsv) - 1)
+        progress.setFixedSize(300, 200)
         progress.setWindowModality(Qt.WindowModal)
         progress.setWindowTitle("Extracting data...")
         for i, device in enumerate(self.tabCsv):
             progress.setValue(i)
-            ret = self.db.extract2csv(device[0], device[1], device[2], str(begin.text()), str(end.text()))
-            if ret is None :fail.append(device[0])
+            ret = self.db.extract2csv(device[0], device[1], device[2], device[3], str(begin.text()), end_id)
+            if ret is None: fail.append(device[0])
         if fail:
             self.showInformation("Extraction error on %s" % ','.join(fail))
         else:
@@ -119,7 +124,7 @@ class mainWindow(QMainWindow):
     def copy2wiki(self):
         if Wiki:
             config = ConfigParser.ConfigParser()
-            config.readfp(open(self.os_path+"config/mediawiki.cfg"))
+            config.readfp(open(self.os_path + "config/mediawiki.cfg"))
             selectdata = []
             for a in config.sections():
                 selectdata.append([a])
@@ -141,14 +146,14 @@ class mainWindow(QMainWindow):
                     data_list.append([key, val, unit, deviceName, typeName, ttemp])
 
             wikistr = tabulate(data_list, headers="firstrow", tablefmt="mediawiki")
-            wikihead = "{| class=\"wikitable sortable centre\" style=\"text-align: left;\"" + "\n" + "|+ Temperature sensors value " + str(dates) + "\n"
+            wikihead = "{| class=\"wikitable sortable centre\" style=\"text-align: left;\"" + "\n" + "|+ Temperature sensors value " + str(
+                dates) + "\n"
 
             for key in data_list[0]:
                 wikihead += "! scope=\"col\"|\'\'\'" + key + "\'\'\'" + "\n"
             wikiTableCode = wikihead + wikistr[206:]
             self.pressPaper = QApplication.clipboard()
             self.pressPaper.setText(wikiTableCode)
-
 
     def csvUpdateTab(self, checkbox, device):
         if checkbox.isChecked() and device not in self.tabCsv:
@@ -157,11 +162,11 @@ class mainWindow(QMainWindow):
             self.tabCsv.remove(device)
 
     def readCfg(self, path):
-        res=[]
+        res = []
         all_file = next(os.walk(path))[-1]
         for f in all_file:
             config = ConfigParser.ConfigParser()
-            config.readfp(open(path+f))
+            config.readfp(open(path + f))
             try:
                 date = config.get('config_date', 'date')
                 res.append((f, dt.datetime.strptime(date, "%d/%m/%Y")))
@@ -169,11 +174,11 @@ class mainWindow(QMainWindow):
                 pass
         res.sort(key=lambda tup: tup[1])
         config = ConfigParser.ConfigParser()
-        config.readfp(open(path+res[-1][0]))
+        config.readfp(open(path + res[-1][0]))
         for a in config.sections():
             if a != 'config_date':
-                self.device_dict[a]=""
-                self.tab.append({"tableName":a})
+                self.device_dict[a] = ""
+                self.tab.append({"tableName": a})
                 for b in config.options(a):
                     if b == "lower_bound":
                         keys = config.get(a, "key").split(',')
@@ -187,10 +192,11 @@ class mainWindow(QMainWindow):
 
                     else:
                         self.tab[-1][b] = config.get(a, b)
+
     def getAlarm(self):
 
         self.alarm_widget = alarmChecker(parent=self)
-        self.global_layout.addWidget(self.alarm_widget,0,0,1,self.divcoeff)
+        self.global_layout.addWidget(self.alarm_widget, 0, 0, 1, self.divcoeff)
 
     def getGroupBox(self):
 
@@ -199,15 +205,16 @@ class mainWindow(QMainWindow):
             deviceName = boxes["label_device"]
             keys = boxes["key"].split(',')
             labels = boxes["label"].split(',')
-            groupBox = myGroupBox(self, tableName, deviceName, keys, labels)
-            self.global_layout.addWidget(groupBox, (i + self.divcoeff) // self.divcoeff, (i + self.divcoeff) % self.divcoeff)
+            units = boxes["unit"].split(',')
+            groupBox = myGroupBox(self, tableName, deviceName, keys, labels, units)
+            self.global_layout.addWidget(groupBox, (i + self.divcoeff) // self.divcoeff,
+                                         (i + self.divcoeff) % self.divcoeff)
 
         self.widget.setLayout(self.global_layout)
         self.global_layout.setRowStretch(0, 1)
         for l in range(1, self.global_layout.rowCount()):
             self.global_layout.setRowStretch(l, self.divcoeff)
         self.setCentralWidget(self.widget)
-
 
     def setColor(self, type, widget, color):
         if type == "QLabel":

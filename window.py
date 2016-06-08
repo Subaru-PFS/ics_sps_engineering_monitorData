@@ -47,7 +47,7 @@ class mainWindow(QMainWindow):
         self.widget = QWidget()
         self.global_layout = QGridLayout()
         no_err = self.db.initDatabase()
-        if no_err:
+        if no_err != -1:
             self.getAlarm()
             self.getGroupBox()
         else:
@@ -105,7 +105,7 @@ class mainWindow(QMainWindow):
         d.setLayout(vbox)
 
     def extract2csv(self, d, begin, end):
-        end_id = np.inf if str(end.text())=="Now" else str(end.text())
+        end_id = np.inf if str(end.text()) == "Now" else str(end.text())
         fail = []
         progress = QProgressDialog("Extracting data", "Abort Extracting", 0, len(self.tabCsv) - 1)
         progress.setFixedSize(300, 200)

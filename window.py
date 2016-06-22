@@ -56,7 +56,7 @@ class mainWindow(QMainWindow):
         self.menubar = self.menuBar()
         self.about_action = QAction('About', self)
         self.about_action.triggered.connect(
-            partial(self.showInformation, "MonitorActor v0.6 working with lib_DataQuery v0.6\n\r made for PFS by aLF"))
+            partial(self.showInformation, "MonitorActor v0.6 working with lib_DataQuery v0.6\n\r made for PFS by ALF"))
         self.helpMenu = self.menubar.addMenu('&?')
         self.helpMenu.addAction(self.about_action)
         self.center = [300, 300]

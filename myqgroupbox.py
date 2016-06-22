@@ -53,7 +53,7 @@ class myGroupBox(QGroupBox):
             date, val = return_values
             self.parent.networkError = False
             self.setTitle(self.deviceName.capitalize() + "    " + date)
-            if self.tableName in self.parent.alarm_widget.list_timeout:
+            if self.tableName in self.parent.alarm_widget.list_timeout+self.parent.alarm_widget.timeout_ack:
                 self.setStyleSheet(
                     "QGroupBox { padding-top: 20 px;border: 1px solid gray; border-radius: 3px;background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop:0 rgba(255,255,255, 90%), stop:1 rgba(0,0,0, 85%));}")
             else:

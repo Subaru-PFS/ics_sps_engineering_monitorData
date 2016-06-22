@@ -5,7 +5,8 @@ from functools import partial
 
 from PyQt5.QtCore import QTimer, QByteArray
 from PyQt5.QtGui import QMovie
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QLabel, QMessageBox, QWidget, QDialog, QVBoxLayout, QCheckBox, QDialogButtonBox
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QLabel, QMessageBox, QWidget, QDialog, QVBoxLayout, QCheckBox, \
+    QDialogButtonBox
 
 
 class alarmChecker(QWidget):
@@ -19,7 +20,6 @@ class alarmChecker(QWidget):
         self.getTimeout()
         self.getTimer()
         self.setLayout(self.alarm_layout)
-
 
     def loadAlarm(self):
         self.list_alarm = []
@@ -51,6 +51,7 @@ class alarmChecker(QWidget):
 
         self.label_acq = QPushButton("ACQUISITION")
         self.label_acq.clicked.connect(self.dialog.show)
+        self.label_acq.setFixedHeight(50)
         self.alarm_layout.addWidget(self.movie_screen, 0, 0, 1, 1)
         self.alarm_layout.addWidget(self.label_acq, 0, 1, 1, 2)
         self.setColor("QPushButton", self.label_acq, "green")
@@ -88,15 +89,16 @@ class alarmChecker(QWidget):
         self.checker_timeout.start()
 
     def showTimeout(self, i):
+        for timeout in self.timeout_ack:
+            try:
+                self.list_timeout.remove(timeout)
+            except ValueError:
+                pass
         if not self.networkError:
-            print "list_timeout", self.list_timeout
-            print "time_out ack", self.timeout_ack
-
             if self.list_timeout:
                 if i < len(self.list_timeout):
-                    if self.list_timeout[i] in self.timeout_ack:
-                        self.label_acq.setText("TIME OUT ON %s" % self.list_timeout[i])
-                        self.setColor("QPushButton", self.label_acq, "red")
+                    self.label_acq.setText("TIME OUT ON %s" % self.list_timeout[i])
+                    self.setColor("QPushButton", self.label_acq, "red")
                     i += 1
                 else:
                     i = 0
@@ -184,9 +186,10 @@ class alarmChecker(QWidget):
 
     def ackTimeout(self, checkbox):
         if checkbox.isChecked():
-            self.timeout_ack.append(str(checkbox.text()))
+            if str(checkbox.text()) in self.timeout_ack:
+                self.timeout_ack.remove(str(checkbox.text()))
         else:
-            self.timeout_ack.remove(str(checkbox.text()))
+            self.timeout_ack.append(str(checkbox.text()))
 
     def showWarning(self, attr):
         reply = QMessageBox.warning(self, 'Message', str(getattr(self, attr)), QMessageBox.Ok)

@@ -4,7 +4,7 @@
 import ConfigParser
 from functools import partial
 
-from ics_sps_engineering_Lib_dataQuery import databaseManager
+from ics_sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
 
 try:
     from tabulate import tabulate
@@ -28,7 +28,7 @@ class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
         self.divcoeff = 3 if display[1] > 1100 else 4
-        self.db = databaseManager(ip, port)
+        self.db = DatabaseManager(ip, port)
         self.networkError = False
         self.os_path = path
         self.tab = []

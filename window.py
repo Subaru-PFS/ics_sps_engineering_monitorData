@@ -27,7 +27,7 @@ import datetime as dt
 class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-        self.divcoeff = 3 if display[1] > 1100 else 4
+        self.divcoeff = 4 if display[1] < 900 else 3
         self.db = DatabaseManager(ip, port)
         self.networkError = False
         self.os_path = path
@@ -41,6 +41,7 @@ class mainWindow(QMainWindow):
         self.readCfg(self.config_path)
         self.initialize()
         self.getToolbar()
+        print self.height()
 
     def initialize(self):
 

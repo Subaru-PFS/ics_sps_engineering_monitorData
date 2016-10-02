@@ -27,10 +27,11 @@ import datetime as dt
 class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-        self.divcoeff = 4 if display[1] < 900 else 3
+        self.divcoeff = 4 if display[1] < 1000 else 3
         self.db = DatabaseManager(ip, port)
         self.networkError = False
         self.os_path = path
+        self.groupBox = []
         self.tab = []
         self.tabCsv = []
         self.low_bound = {}
@@ -41,7 +42,6 @@ class mainWindow(QMainWindow):
         self.readCfg(self.config_path)
         self.initialize()
         self.getToolbar()
-        print self.height()
 
     def initialize(self):
 
@@ -179,7 +179,7 @@ class mainWindow(QMainWindow):
         for a in config.sections():
             if a != 'config_date':
                 self.device_dict[a] = ""
-                self.tab.append({"tableName": a})
+                self.tab.append((len(config.get(a, "key").split(',')), {"tableName": a}))
                 for b in config.options(a):
                     if b == "lower_bound":
                         keys = config.get(a, "key").split(',')
@@ -192,30 +192,51 @@ class mainWindow(QMainWindow):
                         pass
 
                     else:
-                        self.tab[-1][b] = config.get(a, b)
+                        self.tab[-1][1][b] = config.get(a, b)
+
+        self.sortTab()
 
     def getAlarm(self):
 
         self.alarm_widget = alarmChecker(parent=self)
         self.global_layout.addWidget(self.alarm_widget, 0, 0, 1, self.divcoeff)
 
+    def sortTab(self):
+        finalTab = []
+        self.tab = sorted(self.tab, key=lambda x: x[0])
+        self.tab.reverse()
+        for i, (nb, boxes) in enumerate(self.tab):
+            if (i % self.divcoeff) == 0:
+                if i != 0:
+                    finalTab.extend(sorted(inter, key=lambda x: x[0]))
+                inter = [(boxes["label_device"], boxes)]
+            else:
+                inter.append((boxes["label_device"], boxes))
+        if (i % self.divcoeff) != 0:
+            finalTab.extend(sorted(inter, key=lambda x: x[0]))
+        self.tab = finalTab
+
     def getGroupBox(self):
 
-        for i, boxes in enumerate(self.tab):
+        for i, (nb, boxes) in enumerate(self.tab):
             tableName = boxes["tableName"]
             deviceName = boxes["label_device"]
             keys = boxes["key"].split(',')
             labels = boxes["label"].split(',')
             units = boxes["unit"].split(',')
-            groupBox = myGroupBox(self, tableName, deviceName, keys, labels, units)
-            self.global_layout.addWidget(groupBox, (i + self.divcoeff) // self.divcoeff,
-                                         (i + self.divcoeff) % self.divcoeff)
+            self.groupBox.append(myGroupBox(self, tableName, deviceName, keys, labels, units))
+            self.global_layout.addWidget(self.groupBox[-1], (i // self.divcoeff) + 1, i % self.divcoeff)
 
         self.widget.setLayout(self.global_layout)
         self.global_layout.setRowStretch(0, 1)
         for l in range(1, self.global_layout.rowCount()):
             self.global_layout.setRowStretch(l, self.divcoeff)
+        self.updateGroupBox()
         self.setCentralWidget(self.widget)
+
+    def updateGroupBox(self):
+        for groupBox in self.groupBox:
+            groupBox.waitforData()
 
     def setColor(self, type, widget, color):
         if type == "QLabel":

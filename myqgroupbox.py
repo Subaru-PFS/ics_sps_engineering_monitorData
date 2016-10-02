@@ -29,10 +29,10 @@ class myGroupBox(QGroupBox):
         self.prev_date = 0
         self.prev_time = datetime.datetime.now()
 
-        self.watcher_data = QTimer(self)
-        self.watcher_data.setInterval(1500)
-        self.watcher_data.timeout.connect(self.waitforData)
-        self.watcher_data.start()
+        #self.watcher_data = QTimer(self)
+        #self.watcher_data.setInterval(1500)
+        #self.watcher_data.timeout.connect(self.waitforData)
+        #self.watcher_data.start()
 
         for i, (labs, keys, unit) in enumerate(zip(labels, keys, units)):
             self.grid.addWidget(QLabel("%s (%s)"%(labs.strip().title(), unit.strip())), i, 0)

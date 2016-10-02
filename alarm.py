@@ -66,8 +66,8 @@ class alarmChecker(QWidget):
             setattr(self, "alarm_%s" % name, button)
 
         self.watcher_alarm = QTimer(self)
-        self.watcher_alarm.setInterval(5000)
-        self.watcher_alarm.timeout.connect(self.checkCriticalValue)
+        self.watcher_alarm.setInterval(10000)
+        self.watcher_alarm.timeout.connect(self.checkValueTimeout)
         self.watcher_alarm.start()
 
     def getTimeout(self):
@@ -79,14 +79,15 @@ class alarmChecker(QWidget):
             self.last_date[key] = 0
             self.last_time[key] = datetime.datetime.now()
 
-    def getTimer(self):
+    def checkValueTimeout(self):
+        self.checkCriticalValue()
+        self.checkTimeout()
+        self.parent.updateGroupBox()
+
+    def getTimer(self, i=0):
 
         watcher_timeout = QTimer(self)
-        watcher_timeout.singleShot(2000, partial(self.showTimeout, 0))
-        self.checker_timeout = QTimer(self)
-        self.checker_timeout.setInterval(15000)
-        self.checker_timeout.timeout.connect(self.checkTimeout)
-        self.checker_timeout.start()
+        watcher_timeout.singleShot(3000, partial(self.showTimeout, i))
 
     def showTimeout(self, i):
         for timeout in self.timeout_ack:
@@ -108,8 +109,7 @@ class alarmChecker(QWidget):
         else:
             self.label_acq.setText("SERVER LOST")
             self.setColor("QPushButton", self.label_acq, "orange")
-        watcher_timeout = QTimer(self)
-        watcher_timeout.singleShot(2000, partial(self.showTimeout, i))
+        self.getTimer(i)
 
     def checkTimeout(self):
         for key, value in self.parent.device_dict.iteritems():

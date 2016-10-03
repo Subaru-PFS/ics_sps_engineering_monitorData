@@ -66,7 +66,7 @@ class alarmChecker(QWidget):
             setattr(self, "alarm_%s" % name, button)
 
         self.watcher_alarm = QTimer(self)
-        self.watcher_alarm.setInterval(10000)
+        self.watcher_alarm.setInterval(7000)
         self.watcher_alarm.timeout.connect(self.checkValueTimeout)
         self.watcher_alarm.start()
 

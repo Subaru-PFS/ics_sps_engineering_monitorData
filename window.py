@@ -179,7 +179,8 @@ class mainWindow(QMainWindow):
         for a in config.sections():
             if a != 'config_date':
                 self.device_dict[a] = ""
-                self.tab.append((-len(config.get(a, "key").split(',')), config.get(a, "label_device"), {"tableName": a}))
+                self.tab.append((-len(config.get(a, "key").split(',')), config.get(a, "label_device"),
+                                 config.get(a, "type").split(',')[0], {"tableName": a}))
                 for b in config.options(a):
                     if b == "lower_bound":
                         keys = config.get(a, "key").split(',')
@@ -192,8 +193,9 @@ class mainWindow(QMainWindow):
                         pass
 
                     else:
-                        self.tab[-1][2][b] = config.get(a, b)
-        self.sortTab()
+                        self.tab[-1][3][b] = config.get(a, b)
+        if self.divcoeff > 3:
+            self.sortTab()
 
     def getAlarm(self):
 
@@ -202,24 +204,22 @@ class mainWindow(QMainWindow):
 
     def sortTab(self):
         finalTab = []
-        self.tab = sorted(self.tab, key=lambda x: (x[0], x[1]))
-        for i, (nb, deviceName, boxes) in enumerate(self.tab):
-            #deviceName = boxes["label_device"]
-            type = boxes["type"].split(',')[0]
+        self.tab = sorted(self.tab, key=lambda x: (x[0], x[2]))
+        for i, (nb, deviceName, type, boxes) in enumerate(self.tab):
             if (i % self.divcoeff) == 0:
                 if i != 0:
-                    finalTab.extend(sorted(inter, key=lambda x: (x[0], x[1])))
-                inter = [(type, deviceName, boxes)]
+                    finalTab.extend(sorted(inter, key=lambda x: (x[2], x[1])))
+                inter = [(nb, deviceName, type, boxes)]
             else:
-                inter.append((type, deviceName, boxes))
+                inter.append((nb, deviceName, type, boxes))
         if (i % self.divcoeff) != 0:
-            finalTab.extend(sorted(inter, key=lambda x: (x[0], x[1])))
+            finalTab.extend(sorted(inter, key=lambda x: (x[2], x[1])))
 
         self.tab = finalTab
 
     def getGroupBox(self):
 
-        for i, (type, deviceName, boxes) in enumerate(self.tab):
+        for i, (nb, deviceName, type, boxes) in enumerate(self.tab):
             tableName = boxes["tableName"]
             keys = boxes["key"].split(',')
             labels = boxes["label"].split(',')

@@ -91,7 +91,7 @@ class mainWindow(QMainWindow):
         grid.addWidget(line_edit_begin, 0, 1)
         grid.addWidget(QLabel("To"), 0, 2)
         grid.addWidget(line_edit_end, 0, 3)
-        for i, boxes in enumerate(self.tab):
+        for i, (nb, deviceName, type, boxes) in enumerate(self.tab):
             checkbox = QCheckBox(boxes["label_device"])
             checkbox.stateChanged.connect(
                 partial(self.csvUpdateTab, checkbox, [boxes["tableName"], boxes["key"], boxes["label"], boxes["unit"]]))

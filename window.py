@@ -27,7 +27,7 @@ import datetime as dt
 class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-        self.divcoeff = 4 if display[1] < 1000 else 3
+        self.divcoeff = 5 if display[1] < 1000 else 4
         self.db = DatabaseManager(ip, port)
         self.networkError = False
         self.os_path = path
@@ -194,7 +194,7 @@ class mainWindow(QMainWindow):
 
                     else:
                         self.tab[-1][3][b] = config.get(a, b)
-        if self.divcoeff > 3:
+        if self.divcoeff > 4:
             self.sortTab()
 
     def getAlarm(self):

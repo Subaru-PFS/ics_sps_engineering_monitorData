@@ -26,7 +26,7 @@ class alarmChecker(QWidget):
         config = ConfigParser.ConfigParser()
         config.readfp(open(self.parent.config_path + 'alarm.cfg'))
         for a in config.sections():
-            dict = {"tableName": a}
+            dict = {"label": a}
             for b in config.options(a):
                 dict[b] = config.get(a, b)
             self.list_alarm.append(dict)
@@ -57,7 +57,7 @@ class alarmChecker(QWidget):
         self.setColor("QPushButton", self.label_acq, "green")
 
         for i, device in enumerate(self.list_alarm):
-            name = device["tableName"] + device["key"]
+            name = device["tablename"] + device["key"]
             button = QPushButton(device["label"].upper())
             button.setFixedHeight(50)
             self.setColor("QPushButton", button, "green")
@@ -136,8 +136,8 @@ class alarmChecker(QWidget):
     def checkCriticalValue(self):
 
         for device in self.list_alarm:
-            name = device["tableName"] + device["key"]
-            return_values = self.parent.db.getLastData(device["tableName"], device["key"])
+            name = device["tablename"] + device["key"]
+            return_values = self.parent.db.getLastData(device["tablename"], device["key"])
             if type(return_values) is not int:
                 date, [val] = return_values
                 fmt = "{:.5e}" if len(str(val)) > 8 else "{:.2f}"

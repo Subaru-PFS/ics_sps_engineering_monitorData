@@ -27,7 +27,8 @@ import datetime as dt
 class mainWindow(QMainWindow):
     def __init__(self, display, path, ip, port):
         super(mainWindow, self).__init__()
-        self.divcoeff = 5 if display[1] < 1000 else 4
+
+        self.display = display
         self.db = DatabaseManager(ip, port)
         self.networkError = False
         self.os_path = path
@@ -194,6 +195,13 @@ class mainWindow(QMainWindow):
 
                     else:
                         self.tab[-1][3][b] = config.get(a, b)
+
+        nbCell = np.sqrt(len(self.tab))
+        if nbCell == int(nbCell):
+            self.divcoeff = int(nbCell)-1
+        else:
+            self.divcoeff = int(nbCell)
+
         if self.divcoeff > 4:
             self.sortTab()
 

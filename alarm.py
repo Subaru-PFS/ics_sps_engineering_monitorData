@@ -140,6 +140,7 @@ class alarmChecker(QWidget):
             return_values = self.parent.db.getLastData(device["tablename"], device["key"])
             if type(return_values) is not int:
                 date, [val] = return_values
+
                 fmt = "{:.5e}" if len(str(val)) > 8 else "{:.2f}"
                 if float(device["lower_bound"]) <= val < float(device["higher_bound"]):
                     msg = "%s OK \r %s <= %s < %s" % (

@@ -41,11 +41,10 @@ class mainWindow(QMainWindow):
         self.configPath = path.split('ics_sps_engineering_monitorData')[0] + 'ics_sps_engineering_Lib_dataQuery/config/'
         self.imgPath = path + "img/"
 
-
         self.readCfg(self.configPath)
 
         self.initialize()
-        # self.getToolbar()
+        #self.getToolbar()
 
     def initialize(self):
 
@@ -57,9 +56,6 @@ class mainWindow(QMainWindow):
             self.getIcons()
             self.getModule()
 
-        # self.
-        #     self.getAlarm()
-        #     self.getGroupBox()
         else:
             self.showError(no_err)
 

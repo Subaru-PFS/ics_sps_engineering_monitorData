@@ -147,8 +147,7 @@ class DeviceGB(QGroupBox):
             self.grid.addWidget(labelValue, 3 * i + 1, 1, 3, 1)
 
         self.grid.setSpacing(2.)
-        self.setStyleSheet(
-            "QGroupBox {font-size:12px; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #E0E0E0, stop: 1 #FFFFFF);border: 2px solid gray;border-radius: 5px;} QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top right; padding: 0 3px;}")
+        self.setOffline()
 
     def waitforData(self):
 
@@ -167,22 +166,26 @@ class DeviceGB(QGroupBox):
             for i, (key, fmt, lowBound, upBound) in enumerate(
                     zip(self.keys, self.formats, self.lowBounds, self.upBounds)):
                 self.setNewValue(self.dict_label[key], fmt.format(val[i]))
-
-                if float(lowBound) <= val[i] < float(upBound):
-                    self.setColorLine(self.dict_label[key], "green")
-                else:
-                    self.setColorLine(self.dict_label[key], "red")
+                if self.tableName not in self.module.acquisition.vistimeout:
+                    if float(lowBound) <= val[i] < float(upBound):
+                        self.setColorLine(self.dict_label[key], "green")
+                    else:
+                        self.setColorLine(self.dict_label[key], "red")
 
             if hasattr(self, "stateGatevalve"):
                 self.dict_label[self.keys[0]].setText(self.stateGatevalve[val[0]])
 
     def setColorLine(self, label, back_color):
+        print label, back_color
         if back_color == "green":
             label.setStyleSheet(
                 "QLineEdit { color : white; background: qradialgradient(cx:0, cy:0, radius: 1,fx:0.5, fy:0.5, stop:0 rgba(5,145,0, 85%), stop:1 rgba(0,185,0, 85%));border-radius: 6px; qproperty-alignment: AlignCenter; font-size: 9pt;}")
         elif back_color == "red":
             label.setStyleSheet(
                 "QLineEdit { color : white; background: qradialgradient(cx:0, cy:0, radius: 1,fx:0.5, fy:0.5, stop:0 rgba(210,0,0, 90%), stop:1 rgba(255,0,0, 90%));border-radius: 6px; qproperty-alignment: AlignCenter; font-size: 9pt;}")
+        elif back_color == "black":
+            label.setStyleSheet(
+                "QLineEdit { color : white; background: qradialgradient(cx:0, cy:0, radius: 1,fx:0.5, fy:0.5, stop:0 rgba(40,40,40, 90%), stop:1 rgba(0,0,0, 90%));border-radius: 6px; qproperty-alignment: AlignCenter; font-size: 9pt;}")
 
     def getLabelName(self, labs, unit):
         label = QLabel("    %s (%s)" % (labs.strip().title(), unit.strip()))
@@ -202,3 +205,13 @@ class DeviceGB(QGroupBox):
         label.setText(valStr)
         label.setMinimumWidth(9 * len(valStr))
 
+    def setOnline(self):
+        self.setStyleSheet(
+            "QGroupBox {font-size:12px; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #E0E0E0, stop: 1 #FFFFFF);border: 2px solid gray;border-radius: 5px;} QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top right; padding: 0 3px;}")
+
+    def setOffline(self):
+        print self.tableName, ' offline'
+        for key in self.keys:
+            self.setColorLine(self.dict_label[key], "black")
+        self.setStyleSheet(
+            "QGroupBox {font-size:12px; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop:0 rgba(255,255,255, 90%), stop:1 rgba(0,0,0, 85%));border: 2px solid gray;border-radius: 5px;} QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top right; padding: 0 3px;}")

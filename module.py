@@ -18,6 +18,10 @@ class Acquisition(QPushButton):
         self.networkError = False
 
         self.setColorText("ACQUISITION", "green", 160)
+        self.timeout_ack = []
+        self.list_timeout = []
+        self.last_date = {}
+        self.last_time = {}
         self.getTimeout()
 
         self.dialog = self.dialogTimeout()
@@ -32,11 +36,14 @@ class Acquisition(QPushButton):
     def mainWindow(self):
         return self.module.mainWindow
 
+    @property
+    def vistimeout(self):
+        return self.timeout_ack + self.list_timeout
+
+
     def getTimeout(self):
-        self.timeout_ack = []
         self.list_timeout = [d for d in self.devices]
-        self.last_date = {}
-        self.last_time = {}
+
         for device in self.devices:
             self.last_date[device] = 0
             self.last_time[device] = dt.now()
@@ -122,6 +129,11 @@ class Acquisition(QPushButton):
                     if (dt.now() - self.last_time[device]).total_seconds() > Acquisition.TIMEOUT:
                         if device not in self.list_timeout:
                             self.list_timeout.append(device)
+
+            if device in self.vistimeout:
+                self.module.getGroupBox(device).setOffline()
+            else:
+                self.module.getGroupBox(device).setOnline()
 
     def setColorText(self, text, color, size):
         self.setText(text)
@@ -244,3 +256,9 @@ class Module(QGroupBox):
     def resizeEvent(self, QResizeEvent):
         self.moveEye()
         QGroupBox.resizeEvent(self, QResizeEvent)
+
+    def getGroupBox(self, tableName):
+        for i, boxes in enumerate(self.devices):
+            table = boxes["tablename"]
+            if table == tableName:
+                return self.groupBox[i]

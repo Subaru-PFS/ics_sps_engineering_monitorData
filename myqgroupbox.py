@@ -176,7 +176,6 @@ class DeviceGB(QGroupBox):
                 self.dict_label[self.keys[0]].setText(self.stateGatevalve[val[0]])
 
     def setColorLine(self, label, back_color):
-        print label, back_color
         if back_color == "green":
             label.setStyleSheet(
                 "QLineEdit { color : white; background: qradialgradient(cx:0, cy:0, radius: 1,fx:0.5, fy:0.5, stop:0 rgba(5,145,0, 85%), stop:1 rgba(0,185,0, 85%));border-radius: 6px; qproperty-alignment: AlignCenter; font-size: 9pt;}")
@@ -210,7 +209,6 @@ class DeviceGB(QGroupBox):
             "QGroupBox {font-size:12px; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #E0E0E0, stop: 1 #FFFFFF);border: 2px solid gray;border-radius: 5px;} QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top right; padding: 0 3px;}")
 
     def setOffline(self):
-        print self.tableName, ' offline'
         for key in self.keys:
             self.setColorLine(self.dict_label[key], "black")
         self.setStyleSheet(

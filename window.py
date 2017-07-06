@@ -13,7 +13,10 @@ try:
 except ImportError:
     Wiki = False
 import os
-from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QMessageBox, QAction
+import numpy as np
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QMessageBox, QAction, QGridLayout, QTabWidget, QLabel, \
+    QLineEdit, QCheckBox, QDialogButtonBox, QProgressDialog, QDialog
 import datetime as dt
 from module import Module
 from PyQt5.QtGui import QPixmap, QIcon
@@ -33,7 +36,7 @@ class mainWindow(QMainWindow):
         self.networkError = False
         self.os_path = path
 
-        self.tabCsv = []
+        self.tabCsv = {}
 
         self.moduleDict = {}
         self.sortedModule = {}
@@ -44,7 +47,7 @@ class mainWindow(QMainWindow):
         self.readCfg(self.configPath)
 
         self.initialize()
-        #self.getToolbar()
+        self.getToolbar()
 
     def initialize(self):
 
@@ -139,6 +142,7 @@ class mainWindow(QMainWindow):
             module = Module(self, moduleName, devices, alarms)
             self.globalLayout.addWidget(module)
             self.moduleDict[moduleName] = module
+            self.tabCsv[moduleName] = []
 
     def getIcons(self):
 
@@ -148,6 +152,75 @@ class mainWindow(QMainWindow):
         arrowRight.load(self.imgPath + 'arrow_right.png')
         self.iconArrLeft = QIcon(arrowLeft)
         self.iconArrRight = QIcon(arrowRight)
+
+    def getToolbar(self):
+        extract2csvAction = QAction(QIcon(self.os_path + 'img/spreadsheet.png'), 'Extract to Csv', self)
+        extract2csvAction.triggered.connect(self.dialogExtract2csv)
+        self.toolbar = self.addToolBar('Extract to Csv')
+        self.toolbar.addAction(extract2csvAction)
+
+    def dialogExtract2csv(self):
+        d = QDialog(self)
+        d.setFixedWidth(450)
+        d.setWindowTitle("Extract data to Csv")
+        d.setVisible(True)
+        vbox = QVBoxLayout()
+        tabWidget = QTabWidget()
+        for name, mod in self.moduleDict.iteritems():
+            wid = QWidget()
+            grid = QGridLayout()
+            grid.setSpacing(20)
+            line_edit_begin = QLineEdit(
+                dt.datetime(dt.datetime.today().year, dt.datetime.today().month, dt.datetime.today().day).strftime(
+                    "%d/%m/%Y %H:%M:%S"))
+            line_edit_end = QLineEdit("Now")
+            grid.addWidget(QLabel("From"), 0, 0)
+            grid.addWidget(line_edit_begin, 0, 1)
+            grid.addWidget(QLabel("To"), 0, 2)
+            grid.addWidget(line_edit_end, 0, 3)
+            for i, boxes in enumerate(mod.devices):
+                checkbox = QCheckBox(boxes["label_device"])
+                checkbox.stateChanged.connect(
+                    partial(self.csvUpdateTab, name, checkbox, [boxes["tablename"], boxes["key"], boxes["label"], boxes["unit"]]))
+                checkbox.setCheckState(2)
+                grid.addWidget(checkbox, 1 + i, 0, 1, 3)
+
+            wid.setLayout(grid)
+            tabWidget.addTab(wid, name)
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox.button(QDialogButtonBox.Ok).clicked.connect(
+            partial(self.extract2csv, tabWidget, d, line_edit_begin, line_edit_end))
+        buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(d.close)
+
+        vbox.addWidget(tabWidget)
+        vbox.addWidget(buttonBox)
+        d.setLayout(vbox)
+
+    def extract2csv(self, tabWidget, d, begin, end):
+        name = tabWidget.tabText(tabWidget.currentIndex())
+        end_id = np.inf if str(end.text()) == "Now" else str(end.text())
+        fail = []
+        progress = QProgressDialog("Extracting data", "Abort Extracting", 0, len(self.tabCsv) - 1)
+        progress.setFixedSize(300, 200)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowTitle("Extracting data...")
+        for i, device in enumerate(self.tabCsv[name]):
+            progress.setValue(i)
+            ret = self.db.extract2csv(device[0], device[1], device[2], device[3], str(begin.text()), end_id)
+            if ret is None: fail.append(device[0])
+        if fail:
+            self.showInformation("Extraction error on %s" % ','.join(fail))
+        else:
+            self.showInformation("Extraction Completed")
+        d.close()
+
+    def csvUpdateTab(self, module, checkbox, device):
+
+        if checkbox.isChecked() and device not in self.tabCsv[module]:
+            self.tabCsv[module].append(device)
+        elif not checkbox.isChecked() and device in self.tabCsv[module]:
+            self.tabCsv[module].remove(device)
 
     def showWarning(self, attr):
         reply = QMessageBox.warning(self, 'Message', str(getattr(self, attr)), QMessageBox.Ok)

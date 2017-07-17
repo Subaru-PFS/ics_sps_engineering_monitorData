@@ -71,7 +71,6 @@ class AlarmGB(QGroupBox):
         self.setLayout(self.grid)
         self.value.setStyleSheet("QLabel{font-size: 11pt; qproperty-alignment: AlignCenter; color:white;}")
 
-
     def setColor(self, color):
         if color == "red":
             self.setStyleSheet(
@@ -165,12 +164,16 @@ class DeviceGB(QGroupBox):
 
             for i, (key, fmt, lowBound, upBound) in enumerate(
                     zip(self.keys, self.formats, self.lowBounds, self.upBounds)):
-                self.setNewValue(self.dict_label[key], fmt.format(val[i]))
-                if self.tableName not in self.module.acquisition.vistimeout:
-                    if float(lowBound) <= val[i] < float(upBound):
-                        self.setColorLine(self.dict_label[key], "green")
-                    else:
-                        self.setColorLine(self.dict_label[key], "red")
+                try:
+                    self.setNewValue(self.dict_label[key], fmt.format(val[i]))
+                    if self.tableName not in self.module.acquisition.vistimeout:
+                        if float(lowBound) <= val[i] < float(upBound):
+                            self.setColorLine(self.dict_label[key], "green")
+                        else:
+                            self.setColorLine(self.dict_label[key], "red")
+                except ValueError:
+                    print "fmt=", fmt
+                    print "val=", val
 
             if hasattr(self, "stateGatevalve"):
                 self.dict_label[self.keys[0]].setText(self.stateGatevalve[val[0]])

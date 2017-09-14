@@ -6,19 +6,20 @@ from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QPushButton, QDialog, QVBo
     QGroupBox
 
 from myqgroupbox import DeviceGB, AlarmGB, EyeButton
-
+import pickle
+import random
+import time
 
 class Acquisition(QPushButton):
     TIMEOUT = 90
 
     def __init__(self, module):
         QPushButton.__init__(self, "ACQUISITION")
-
         self.module = module
         self.networkError = False
 
         self.setColorText("ACQUISITION", "green", 160)
-        self.timeout_ack = []
+
         self.list_timeout = []
         self.last_date = {}
         self.last_time = {}
@@ -39,6 +40,10 @@ class Acquisition(QPushButton):
     @property
     def vistimeout(self):
         return self.timeout_ack + self.list_timeout
+
+    @property
+    def timeout_ack(self):
+        return self.module.unPickle('timeoutAck')
 
 
     def getTimeout(self):
@@ -66,8 +71,9 @@ class Acquisition(QPushButton):
 
         for i, device in enumerate(self.devices):
             checkbox = QCheckBox(device)
+            checkbox.setCheckState(0) if device in self.timeout_ack else checkbox.setCheckState(2)
             checkbox.stateChanged.connect(partial(self.ackTimeout, checkbox))
-            checkbox.setCheckState(2)
+
             grid.addWidget(checkbox, 1 + i, 0, 1, 3)
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttonBox.button(QDialogButtonBox.Ok).clicked.connect(d.hide)
@@ -78,11 +84,15 @@ class Acquisition(QPushButton):
         return d
 
     def ackTimeout(self, checkbox):
+        timeout_ack = self.timeout_ack
+
         if checkbox.isChecked():
-            if str(checkbox.text()) in self.timeout_ack:
-                self.timeout_ack.remove(str(checkbox.text()))
+            if str(checkbox.text()) in timeout_ack:
+                timeout_ack.remove(str(checkbox.text()))
         else:
-            self.timeout_ack.append(str(checkbox.text()))
+            timeout_ack.append(str(checkbox.text()))
+
+        self.module.doPickle('timeoutAck', timeout_ack)
 
     def timeoutShow(self, i=0):
         timeoutShow = QTimer(self.mainWindow)
@@ -161,6 +171,7 @@ class Module(QGroupBox):
         self.name = name
         self.devices = devices
         self.alarms = alarms
+        self.path = '/home/pfs/AIT-PFS/current/ics_sps_engineering_JabberBot/'
 
         self.groupBox = []
         self.alarmGB = []
@@ -262,3 +273,21 @@ class Module(QGroupBox):
             table = boxes["tablename"]
             if table == tableName:
                 return self.groupBox[i]
+
+    def unPickle(self, filename, empty=None):
+        try:
+            with open(self.path + filename, 'r') as thisFile:
+                unpickler = pickle.Unpickler(thisFile)
+                return unpickler.load()
+        except IOError:
+            self.log.debug("creating empty %s file" % filename)
+            return {} if empty is None else []
+        except EOFError:
+            self.log.debug("except EOFError")
+            time.sleep(0.5+2*random.random())
+            return self.unPickle(filename=filename, empty=empty)
+
+    def doPickle(self, filename, var):
+        with open(self.path + filename, 'w') as thisFile:
+            pickler = pickle.Pickler(thisFile)
+            pickler.dump(var)

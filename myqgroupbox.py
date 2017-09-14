@@ -71,6 +71,12 @@ class AlarmGB(QGroupBox):
         self.setLayout(self.grid)
         self.value.setStyleSheet("QLabel{font-size: 11pt; qproperty-alignment: AlignCenter; color:white;}")
 
+    @property
+    def isEffective(self):
+
+        listAlarm = self.module.unPickle('listAlarm')
+        return listAlarm[self.alarm["label"].lower()]
+
     def setColor(self, color):
         if color == "red":
             self.setStyleSheet(
@@ -100,11 +106,10 @@ class AlarmGB(QGroupBox):
             else:
                 self.value.setText(self.stateGatevalve[val[0]])
 
-            if float(self.alarm["lower_bound"]) <= val < float(self.alarm["higher_bound"]):
-                self.setColor("green")
-            else:
+            if self.isEffective and not (float(self.alarm["lower_bound"]) <= val < float(self.alarm["higher_bound"])):
                 self.setColor("red")
-
+            else:
+                self.setColor("green")
 
 class DeviceGB(QGroupBox):
     def __init__(self, module, tableName, deviceName, keys, labels, units, lowBounds, upBounds):

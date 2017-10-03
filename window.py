@@ -99,6 +99,9 @@ class mainWindow(QMainWindow):
                     self.sortedModule[cuLabel][i].append(d)
 
     def readDeviceCfg(self, path):
+        datatype = ConfigParser.ConfigParser()
+        datatype.read('%s/datatype.cfg' % path)
+        datatype = datatype._sections
 
         res = []
         allConfig = []
@@ -120,6 +123,13 @@ class mainWindow(QMainWindow):
                 allConfig.append({"tablename": a})
                 for b in config.options(a):
                     allConfig[-1][b] = config.get(a, b)
+
+                allConfig[-1]["unit"] = ','.join([datatype[typ.strip()]['unit'] for typ in config.get(a, "type").split(',')])
+
+                if "label_device" not in config.options(a):
+                    allConfig[-1]["label_device"] = (a.split('__')[1]).capitalize()
+                if "label" not in config.options(a):
+                    allConfig[-1]["label"] = config.get(a, "key")
 
         return allConfig
 
@@ -181,7 +191,8 @@ class mainWindow(QMainWindow):
             for i, boxes in enumerate(mod.devices):
                 checkbox = QCheckBox(boxes["label_device"])
                 checkbox.stateChanged.connect(
-                    partial(self.csvUpdateTab, name, checkbox, [boxes["tablename"], boxes["key"], boxes["label"], boxes["unit"]]))
+                    partial(self.csvUpdateTab, name, checkbox,
+                            [boxes["tablename"], boxes["key"], boxes["label"], boxes["unit"]]))
                 checkbox.setCheckState(2)
                 grid.addWidget(checkbox, 1 + i, 0, 1, 3)
 

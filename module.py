@@ -214,7 +214,7 @@ class Module(QGroupBox):
             labels = boxes["label"].split(',')
             units = boxes["unit"].split(',')
             lowBounds = boxes["lower_bound"].split(',')
-            upBounds = boxes["higher_bound"].split(',')
+            upBounds = boxes["upper_bound"].split(',')
 
             self.groupBox.append(DeviceGB(self, tableName, deviceName, keys, labels, units, lowBounds, upBounds))
             self.gbLayout.addWidget(self.groupBox[-1], (i // self.divcoeff) + 1, i % self.divcoeff)

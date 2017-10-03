@@ -59,7 +59,7 @@ class AlarmGB(QGroupBox):
         self.alarm = alarm
 
         if "gatevalve" in alarm["tablename"]:
-            self.stateGatevalve = {0: "OPENED", 1: "CLOSED", 2: "UNKNOWN", 3: "INVALID"}
+            self.stateGatevalve = {0: "OPEN", 1: "CLOSED", 2: "UNKNOWN", 3: "INVALID"}
 
         QGroupBox.__init__(self)
         self.setTitle(alarm["label"])
@@ -101,12 +101,11 @@ class AlarmGB(QGroupBox):
 
             if not hasattr(self, "stateGatevalve"):
                 val = val[0]
-                fmt = "{:.3e}" if len(str(val)) > 7 else "{:.2f}"
-                self.value.setText(fmt.format(val))
+                self.value.setText('{:g}'.format(val))
             else:
                 self.value.setText(self.stateGatevalve[val[0]])
 
-            if self.isEffective and not (float(self.alarm["lower_bound"]) <= val < float(self.alarm["higher_bound"])):
+            if self.isEffective and not (float(self.alarm["lower_bound"]) <= val < float(self.alarm["upper_bound"])):
                 self.setColor("red")
             else:
                 self.setColor("green")
@@ -126,7 +125,7 @@ class DeviceGB(QGroupBox):
         self.lowBounds = lowBounds
         self.upBounds = upBounds
 
-        self.formats = ["{:.2e}" if uni.strip() in ['Torr', 'mBar', 'Bar'] else '{:.2f}' for uni in units]
+        self.formats = ["{:g}"  for uni in units]
         self.sqlRequest = "%s" % ",".join([key for key in self.keys])
 
         if "gatevalve" in self.tableName:
@@ -147,8 +146,8 @@ class DeviceGB(QGroupBox):
         for i, (lab, key, unit) in enumerate(zip(labels, keys, units)):
             labelName = self.getLabelName(lab, unit)
             labelValue = self.getLabelValue(key)
-            self.grid.addWidget(labelName, 3 * i + 1, 0, 3, 1)
-            self.grid.addWidget(labelValue, 3 * i + 1, 1, 3, 1)
+            self.grid.addWidget(labelName, 3 * i + 1, 0, 4, 1)
+            self.grid.addWidget(labelValue, 3 * i + 1, 1, 4, 1)
 
         self.grid.setSpacing(2.)
         self.setOffline()

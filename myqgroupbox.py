@@ -129,7 +129,7 @@ class DeviceGB(QGroupBox):
         self.sqlRequest = "%s" % ",".join([key for key in self.keys])
 
         if "gatevalve" in self.tableName:
-            self.stateGatevalve = {0: "OPENED", 1: "CLOSED", 2: "UNKNOWN", 3: "INVALID"}
+            self.stateGatevalve = {0: "OPEN", 1: "CLOSED", 2: "UNKNOWN", 3: "INVALID"}
 
         self.setFlat(True)
         self.dict_label = {}
@@ -142,12 +142,11 @@ class DeviceGB(QGroupBox):
         devName = DeviceName(self, deviceName.capitalize())
 
         self.grid.addWidget(devName, 0, 0)
-
         for i, (lab, key, unit) in enumerate(zip(labels, keys, units)):
             labelName = self.getLabelName(lab, unit)
             labelValue = self.getLabelValue(key)
-            self.grid.addWidget(labelName, 3 * i + 1, 0, 4, 1)
-            self.grid.addWidget(labelValue, 3 * i + 1, 1, 4, 1)
+            self.grid.addWidget(labelName, 3 * i + 1, 0, 3, 1)
+            self.grid.addWidget(labelValue, 3 * i + 1, 1, 3, 1)
 
         self.grid.setSpacing(2.)
         self.setOffline()

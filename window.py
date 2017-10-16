@@ -41,7 +41,8 @@ class mainWindow(QMainWindow):
         self.moduleDict = {}
         self.sortedModule = {}
 
-        self.configPath = path.split('ics_sps_engineering_monitorData')[0] + 'ics_sps_engineering_Lib_dataQuery/config/'
+
+        self.configPath = path.split('ics_sps_engineering_monitorData')[0] + 'ics_sps_engineering_Lib_dataQuery'
         self.imgPath = path + "img/"
 
         self.readCfg(self.configPath)
@@ -79,8 +80,8 @@ class mainWindow(QMainWindow):
         self.show()
 
     def readCfg(self, path):
-        deviceConfig = self.readDeviceCfg(path)
-        alarmConfig = self.readAlarmCfg(path)
+        deviceConfig = self.readDeviceCfg('%s/config/'%path)
+        alarmConfig = self.readAlarmCfg('%s/alarm/'%path)
 
         for i, conf in enumerate([deviceConfig, alarmConfig]):
             for d in conf:
@@ -134,10 +135,9 @@ class mainWindow(QMainWindow):
         return allConfig
 
     def readAlarmCfg(self, path):
-
         listAlarm = []
         config = ConfigParser.ConfigParser()
-        config.readfp(open(path + 'alarm.cfg'))
+        config.readfp(open(path + 'operation.cfg'))
         for a in config.sections():
             dict = {"label": a}
             for b in config.options(a):

@@ -163,14 +163,13 @@ class Acquisition(QPushButton):
 
 
 class Module(QGroupBox):
-    def __init__(self, mainWindow, name, devices, alarms):
+    def __init__(self, mainWindow, name, devices):
         QGroupBox.__init__(self)
-        self.setTitle(name)
 
         self.mainWindow = mainWindow
         self.name = name
         self.devices = devices
-        self.alarms = alarms
+
         self.path = '%s/alarm/' % self.mainWindow.configPath
 
         self.groupBox = []
@@ -199,6 +198,23 @@ class Module(QGroupBox):
         self.eyeButton = EyeButton(self)
         self.createAlarms()
 
+    def setAlarms(self, alarms):
+        self.cleanAlarms()
+        self.mode = alarms[0]['mode']
+        self.setTitle('%s - %s ' % (self.name, self.mode))
+
+        for alarm in alarms:
+            self.alarmGB.append(AlarmGB(self, alarm))
+            self.alarmLayout.addWidget(self.alarmGB[-1])
+
+    def cleanAlarms(self, i=0):
+
+        while self.alarmGB:
+            alarm = self.alarmGB[i]
+            self.alarmLayout.removeWidget(alarm)
+            alarm.deleteLater()
+            self.alarmGB.remove(alarm)
+
     def moveEye(self):
 
         try:
@@ -223,10 +239,6 @@ class Module(QGroupBox):
 
         self.acquisition = Acquisition(self)
         self.alarmLayout.addWidget(self.acquisition)
-
-        for alarm in self.alarms:
-            self.alarmGB.append(AlarmGB(self, alarm))
-            self.alarmLayout.addWidget(self.alarmGB[-1])
 
     def showAll(self, bool):
 
@@ -275,7 +287,7 @@ class Module(QGroupBox):
                 return self.groupBox[i]
 
     def unPickle(self, filename, empty=None):
-        
+
         try:
             with open(self.path + filename, 'r') as thisFile:
                 unpickler = pickle.Unpickler(thisFile)

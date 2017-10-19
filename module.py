@@ -1,14 +1,15 @@
 from datetime import datetime as dt
 from functools import partial
+import pickle
+import random
+import time
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QPushButton, QDialog, QVBoxLayout, QCheckBox, QDialogButtonBox, \
     QGroupBox
 
 from myqgroupbox import DeviceGB, AlarmGB, EyeButton
-import pickle
-import random
-import time
+
 
 class Acquisition(QPushButton):
     TIMEOUT = 90
@@ -44,7 +45,6 @@ class Acquisition(QPushButton):
     @property
     def timeout_ack(self):
         return self.module.unPickle('timeoutAck')
-
 
     def getTimeout(self):
         self.list_timeout = [d for d in self.devices]
@@ -163,15 +163,14 @@ class Acquisition(QPushButton):
 
 
 class Module(QGroupBox):
-    def __init__(self, mainWindow, name, devices, alarms):
+    def __init__(self, mainWindow, name, devices):
         QGroupBox.__init__(self)
-        self.setTitle(name)
 
         self.mainWindow = mainWindow
         self.name = name
         self.devices = devices
-        self.alarms = alarms
-        self.path = '/home/pfs/AIT-PFS/current/ics_sps_engineering_JabberBot/'
+
+        self.path = '%s/alarm/' % self.mainWindow.configPath
 
         self.groupBox = []
         self.alarmGB = []
@@ -199,6 +198,23 @@ class Module(QGroupBox):
         self.eyeButton = EyeButton(self)
         self.createAlarms()
 
+    def setAlarms(self, alarms):
+        self.cleanAlarms()
+        self.mode = alarms[0]['mode']
+        self.setTitle('%s - %s ' % (self.name, self.mode))
+
+        for alarm in alarms:
+            self.alarmGB.append(AlarmGB(self, alarm))
+            self.alarmLayout.addWidget(self.alarmGB[-1])
+
+    def cleanAlarms(self, i=0):
+
+        while self.alarmGB:
+            alarm = self.alarmGB[i]
+            self.alarmLayout.removeWidget(alarm)
+            alarm.deleteLater()
+            self.alarmGB.remove(alarm)
+
     def moveEye(self):
 
         try:
@@ -223,10 +239,6 @@ class Module(QGroupBox):
 
         self.acquisition = Acquisition(self)
         self.alarmLayout.addWidget(self.acquisition)
-
-        for alarm in self.alarms:
-            self.alarmGB.append(AlarmGB(self, alarm))
-            self.alarmLayout.addWidget(self.alarmGB[-1])
 
     def showAll(self, bool):
 
@@ -275,6 +287,7 @@ class Module(QGroupBox):
                 return self.groupBox[i]
 
     def unPickle(self, filename, empty=None):
+
         try:
             with open(self.path + filename, 'r') as thisFile:
                 unpickler = pickle.Unpickler(thisFile)
@@ -284,7 +297,7 @@ class Module(QGroupBox):
             return {} if empty is None else []
         except EOFError:
             self.log.debug("except EOFError")
-            time.sleep(0.5+2*random.random())
+            time.sleep(0.5 + 2 * random.random())
             return self.unPickle(filename=filename, empty=empty)
 
     def doPickle(self, filename, var):

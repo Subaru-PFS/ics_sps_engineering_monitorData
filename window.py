@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 import ConfigParser
+import pickle
 from functools import partial
 
 from ics_sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
@@ -14,7 +15,7 @@ except ImportError:
     Wiki = False
 import os
 import numpy as np
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QMessageBox, QAction, QGridLayout, QTabWidget, QLabel, \
     QLineEdit, QCheckBox, QDialogButtonBox, QProgressDialog, QDialog
 import datetime as dt
@@ -37,17 +38,14 @@ class mainWindow(QMainWindow):
         self.os_path = path
 
         self.tabCsv = {}
-
         self.moduleDict = {}
-        self.sortedModule = {}
 
-        self.configPath = path.split('ics_sps_engineering_monitorData')[0] + 'ics_sps_engineering_Lib_dataQuery/config/'
+        self.configPath = path.split('ics_sps_engineering_monitorData')[0] + 'ics_sps_engineering_Lib_dataQuery'
         self.imgPath = path + "img/"
-
-        self.readCfg(self.configPath)
 
         self.initialize()
         self.getToolbar()
+        self.getModes()
 
     def initialize(self):
 
@@ -78,25 +76,39 @@ class mainWindow(QMainWindow):
         self.setCentralWidget(self.mainWidget)
         self.show()
 
-    def readCfg(self, path):
-        deviceConfig = self.readDeviceCfg(path)
-        alarmConfig = self.readAlarmCfg(path)
+    def getModes(self):
+        self.timerMode = QTimer(self)
+        self.timerMode.setInterval(3000)
+        self.timerMode.timeout.connect(self.handleModes)
+        self.timerMode.start()
 
-        for i, conf in enumerate([deviceConfig, alarmConfig]):
-            for d in conf:
-                found = False
-                for cuArm, cuLabel in mainWindow.cuArms.iteritems():
-                    if cuArm in d["tablename"]:
-                        found = True
-                        break
-                if not found:
-                    cuLabel = "AIT"
+    def handleModes(self):
+        sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
+        for moduleName, alarms in sortedAlarm.iteritems():
+            module = self.moduleDict[moduleName]
+            mode = alarms[0]['mode']
+            if mode != module.mode:
+                module.setAlarms(alarms)
 
-                if cuLabel not in self.sortedModule.iterkeys():
+    def readSortCfg(self, func, path):
+        sortedDict = {}
+        cfg = func(path)
+        for d in cfg:
+            found = False
+            for cuArm, cuLabel in mainWindow.cuArms.iteritems():
+                if cuArm in d["tablename"]:
+                    found = True
+                    break
+            if not found:
+                cuLabel = "AIT"
 
-                    self.sortedModule[cuLabel] = ([d], []) if i == 0 else ([], [d])
-                else:
-                    self.sortedModule[cuLabel][i].append(d)
+            if cuLabel not in sortedDict.iterkeys():
+
+                sortedDict[cuLabel] = [d]
+            else:
+                sortedDict[cuLabel].append(d)
+
+        return sortedDict
 
     def readDeviceCfg(self, path):
         datatype = ConfigParser.ConfigParser()
@@ -124,7 +136,8 @@ class mainWindow(QMainWindow):
                 for b in config.options(a):
                     allConfig[-1][b] = config.get(a, b)
 
-                allConfig[-1]["unit"] = ','.join([datatype[typ.strip()]['unit'] for typ in config.get(a, "type").split(',')])
+                allConfig[-1]["unit"] = ','.join(
+                    [datatype[typ.strip()]['unit'] for typ in config.get(a, "type").split(',')])
 
                 if "label_device" not in config.options(a):
                     allConfig[-1]["label_device"] = (a.split('__')[1]).capitalize()
@@ -134,22 +147,32 @@ class mainWindow(QMainWindow):
         return allConfig
 
     def readAlarmCfg(self, path):
-
         listAlarm = []
-        config = ConfigParser.ConfigParser()
-        config.readfp(open(path + 'alarm.cfg'))
-        for a in config.sections():
-            dict = {"label": a}
-            for b in config.options(a):
-                dict[b] = config.get(a, b)
-            listAlarm.append(dict)
+        with open(path + 'mode.cfg', 'r') as thisFile:
+            unpickler = pickle.Unpickler(thisFile)
+            modes = unpickler.load()
+
+        for actor, mode in modes.iteritems():
+            config = ConfigParser.ConfigParser()
+            config.readfp(open(path + '%s.cfg' % mode))
+            sections = [a for a in config.sections() if actor in config.get(a, 'tablename')]
+            for a in sections:
+                dict = {"label": a, "mode": mode}
+                for b in config.options(a):
+                    dict[b] = config.get(a, b)
+                listAlarm.append(dict)
 
         return listAlarm
 
     def getModule(self):
 
-        for moduleName, (devices, alarms) in self.sortedModule.iteritems():
-            module = Module(self, moduleName, devices, alarms)
+        sortedModule = self.readSortCfg(self.readDeviceCfg, '%s/config/' % self.configPath)
+        sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
+
+        for (moduleName, devices), (__, alarms) in zip(sortedModule.iteritems(), sortedAlarm.iteritems()):
+            module = Module(self, moduleName, devices)
+            module.setAlarms(alarms)
+
             self.globalLayout.addWidget(module)
             self.moduleDict[moduleName] = module
             self.tabCsv[moduleName] = []

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import datetime
 
 from PyQt5.QtGui import QPixmap, QIcon
@@ -175,8 +177,8 @@ class DeviceGB(QGroupBox):
                         else:
                             self.setColorLine(self.dict_label[key], "red")
                 except ValueError:
-                    print "fmt=", fmt
-                    print "val=", val
+                    print("fmt=", fmt)
+                    print("val=", val)
 
             if hasattr(self, "stateGatevalve"):
                 self.dict_label[self.keys[0]].setText(self.stateGatevalve[val[0]])

@@ -1,3 +1,4 @@
+from builtins import str
 from datetime import datetime as dt
 from functools import partial
 import pickle
@@ -44,7 +45,7 @@ class Acquisition(QPushButton):
 
     @property
     def timeout_ack(self):
-        return self.module.unPickle('timeoutAck')
+        return self.module.unPickle('timeoutAck', empty='list')
 
     def getTimeout(self):
         self.list_timeout = [d for d in self.devices]
@@ -289,18 +290,20 @@ class Module(QGroupBox):
     def unPickle(self, filename, empty=None):
 
         try:
-            with open(self.path + filename, 'r') as thisFile:
+            with open(self.path + filename, 'rb') as thisFile:
                 unpickler = pickle.Unpickler(thisFile)
                 return unpickler.load()
         except IOError:
-            self.log.debug("creating empty %s file" % filename)
-            return {} if empty is None else []
+            print("creating empty %s file" % filename)
+            var = {} if empty is None else []
+            self.doPickle(filename, var)
+            return var
         except EOFError:
-            self.log.debug("except EOFError")
+            print("except EOFError")
             time.sleep(0.5 + 2 * random.random())
             return self.unPickle(filename=filename, empty=empty)
 
     def doPickle(self, filename, var):
-        with open(self.path + filename, 'w') as thisFile:
+        with open(self.path + filename, 'wb') as thisFile:
             pickler = pickle.Pickler(thisFile)
             pickler.dump(var)

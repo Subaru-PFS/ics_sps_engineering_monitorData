@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import ConfigParser
+from future import standard_library
+standard_library.install_aliases()
+from builtins import zip
+from builtins import next
+from builtins import str
+import configparser
 import pickle
 from functools import partial
 
@@ -84,7 +89,7 @@ class mainWindow(QMainWindow):
 
     def handleModes(self):
         sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
-        for moduleName, alarms in sortedAlarm.iteritems():
+        for moduleName, alarms in list(sortedAlarm.items()):
             module = self.moduleDict[moduleName]
             mode = alarms[0]['mode']
             if mode != module.mode:
@@ -95,14 +100,14 @@ class mainWindow(QMainWindow):
         cfg = func(path)
         for d in cfg:
             found = False
-            for cuArm, cuLabel in mainWindow.cuArms.iteritems():
+            for cuArm, cuLabel in list(mainWindow.cuArms.items()):
                 if cuArm in d["tablename"]:
                     found = True
                     break
             if not found:
                 cuLabel = "AIT"
 
-            if cuLabel not in sortedDict.iterkeys():
+            if cuLabel not in iter(list(sortedDict.keys())):
 
                 sortedDict[cuLabel] = [d]
             else:
@@ -111,7 +116,7 @@ class mainWindow(QMainWindow):
         return sortedDict
 
     def readDeviceCfg(self, path):
-        datatype = ConfigParser.ConfigParser()
+        datatype = configparser.ConfigParser()
         datatype.read('%s/datatype.cfg' % path)
         datatype = datatype._sections
 
@@ -119,16 +124,16 @@ class mainWindow(QMainWindow):
         allConfig = []
         all_file = next(os.walk(path))[-1]
         for f in all_file:
-            config = ConfigParser.ConfigParser()
+            config = configparser.ConfigParser()
             config.readfp(open(path + f))
             try:
                 date = config.get('config_date', 'date')
                 res.append((f, dt.datetime.strptime(date, "%d/%m/%Y")))
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 pass
 
         res.sort(key=lambda tup: tup[1])
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.readfp(open(path + res[-1][0]))
         for a in config.sections():
             if a != 'config_date':
@@ -148,12 +153,12 @@ class mainWindow(QMainWindow):
 
     def readAlarmCfg(self, path):
         listAlarm = []
-        with open(path + 'mode.cfg', 'r') as thisFile:
+        with open(path + 'mode.cfg', 'rb') as thisFile:
             unpickler = pickle.Unpickler(thisFile)
             modes = unpickler.load()
 
-        for actor, mode in modes.iteritems():
-            config = ConfigParser.ConfigParser()
+        for actor, mode in list(modes.items()):
+            config = configparser.ConfigParser()
             config.readfp(open(path + '%s.cfg' % mode))
             sections = [a for a in config.sections() if actor in config.get(a, 'tablename')]
             for a in sections:
@@ -169,7 +174,7 @@ class mainWindow(QMainWindow):
         sortedModule = self.readSortCfg(self.readDeviceCfg, '%s/config/' % self.configPath)
         sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
 
-        for (moduleName, devices), (__, alarms) in zip(sortedModule.iteritems(), sortedAlarm.iteritems()):
+        for (moduleName, devices), (__, alarms) in zip(iter(list(sortedModule.items())), iter(list(sortedAlarm.items()))):
             module = Module(self, moduleName, devices)
             module.setAlarms(alarms)
 
@@ -199,7 +204,7 @@ class mainWindow(QMainWindow):
         d.setVisible(True)
         vbox = QVBoxLayout()
         tabWidget = QTabWidget()
-        for name, mod in self.moduleDict.iteritems():
+        for name, mod in list(self.moduleDict.items()):
             wid = QWidget()
             grid = QGridLayout()
             grid.setSpacing(20)

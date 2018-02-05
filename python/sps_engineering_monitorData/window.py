@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from future import standard_library
-standard_library.install_aliases()
-from builtins import zip
-from builtins import next
-from builtins import str
-import configparser
+
 import pickle
 from functools import partial
 
-from ics_sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
+import configparser
+import sps_engineering_Lib_dataQuery as dataQuery
+import sps_engineering_monitorData.img as imgFolder
+from sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
 
 try:
     from tabulate import tabulate
@@ -19,10 +17,9 @@ try:
 except ImportError:
     Wiki = False
 import os
-import numpy as np
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QMessageBox, QAction, QGridLayout, QTabWidget, QLabel, \
-    QLineEdit, QCheckBox, QDialogButtonBox, QProgressDialog, QDialog
+    QLineEdit, QCheckBox, QDialogButtonBox, QDialog, QProgressBar
 import datetime as dt
 from module import Module
 from PyQt5.QtGui import QPixmap, QIcon
@@ -34,19 +31,17 @@ class mainWindow(QMainWindow):
               "_r0__": "Thermal RCU",
               }
 
-    def __init__(self, display, path, ip, port):
+    def __init__(self, display, ip, port):
         super(mainWindow, self).__init__()
 
         self.display = display
         self.db = DatabaseManager(ip, port)
         self.networkError = False
-        self.os_path = path
-
+        self.configPath = os.path.dirname(dataQuery.__file__)
         self.tabCsv = {}
         self.moduleDict = {}
 
-        self.configPath = path.split('ics_sps_engineering_monitorData')[0] + 'ics_sps_engineering_Lib_dataQuery'
-        self.imgPath = path + "img/"
+        self.imgPath = os.path.dirname(imgFolder.__file__)
 
         self.initialize()
         self.getToolbar()
@@ -56,24 +51,19 @@ class mainWindow(QMainWindow):
 
         self.mainWidget = QWidget()
         self.globalLayout = QVBoxLayout()
-        no_err = self.db.initDatabase()
+        self.db.init()
 
-        if no_err != -1:
-            self.getIcons()
-            self.getModule()
-
-        else:
-            self.showError(no_err)
+        self.getIcons()
+        self.getModule()
 
         self.menubar = self.menuBar()
         self.about_action = QAction('About', self)
-        self.about_action.triggered.connect(
-            partial(self.showInformation, "MonitorActor 0.7 working with lib_DataQuery 0.7\n\r made for PFS by ALF"))
+        self.about_action.triggered.connect(partial(self.showInformation, "monitorData 1.0.5 \n\r made for PFS by ALF"))
         self.helpMenu = self.menubar.addMenu('&?')
         self.helpMenu.addAction(self.about_action)
 
         self.center = [300, 300]
-        self.title = " AIT-PFS Monitoring CU"
+        self.title = "ics_sps_engineering_monitorData"
         self.move(self.center[0], self.center[1])
         self.setWindowTitle(self.title)
 
@@ -113,6 +103,7 @@ class mainWindow(QMainWindow):
             else:
                 sortedDict[cuLabel].append(d)
 
+
         return sortedDict
 
     def readDeviceCfg(self, path):
@@ -122,7 +113,7 @@ class mainWindow(QMainWindow):
 
         res = []
         allConfig = []
-        all_file = next(os.walk(path))[-1]
+        all_file = [f for f in next(os.walk(path))[-1] if '.cfg' in f]
         for f in all_file:
             config = configparser.ConfigParser()
             config.readfp(open(path + f))
@@ -174,10 +165,11 @@ class mainWindow(QMainWindow):
         sortedModule = self.readSortCfg(self.readDeviceCfg, '%s/config/' % self.configPath)
         sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
 
-        for (moduleName, devices), (__, alarms) in zip(iter(list(sortedModule.items())), iter(list(sortedAlarm.items()))):
+        for moduleName in sorted(sortedModule.keys()):
+            devices = sortedModule[moduleName]
+            alarms = sortedAlarm[moduleName]
             module = Module(self, moduleName, devices)
             module.setAlarms(alarms)
-
             self.globalLayout.addWidget(module)
             self.moduleDict[moduleName] = module
             self.tabCsv[moduleName] = []
@@ -192,7 +184,7 @@ class mainWindow(QMainWindow):
         self.iconArrRight = QIcon(arrowRight)
 
     def getToolbar(self):
-        extract2csvAction = QAction(QIcon(self.os_path + 'img/spreadsheet.png'), 'Extract to Csv', self)
+        extract2csvAction = QAction(QIcon('%s/%s' % (self.imgPath, 'spreadsheet.png')), 'Extract to Csv', self)
         extract2csvAction.triggered.connect(self.dialogExtract2csv)
         self.toolbar = self.addToolBar('Extract to Csv')
         self.toolbar.addAction(extract2csvAction)
@@ -208,19 +200,15 @@ class mainWindow(QMainWindow):
             wid = QWidget()
             grid = QGridLayout()
             grid.setSpacing(20)
-            line_edit_begin = QLineEdit(
-                dt.datetime(dt.datetime.today().year, dt.datetime.today().month, dt.datetime.today().day).strftime(
-                    "%d/%m/%Y %H:%M:%S"))
-            line_edit_end = QLineEdit("Now")
+            wid.dateStart = QLineEdit('%s00:00' % dt.datetime.now().strftime("%Y-%m-%dT"))
+            wid.dateEnd = QLineEdit("Now")
             grid.addWidget(QLabel("From"), 0, 0)
-            grid.addWidget(line_edit_begin, 0, 1)
+            grid.addWidget(wid.dateStart, 0, 1)
             grid.addWidget(QLabel("To"), 0, 2)
-            grid.addWidget(line_edit_end, 0, 3)
+            grid.addWidget(wid.dateEnd, 0, 3)
             for i, boxes in enumerate(mod.devices):
                 checkbox = QCheckBox(boxes["label_device"])
-                checkbox.stateChanged.connect(
-                    partial(self.csvUpdateTab, name, checkbox,
-                            [boxes["tablename"], boxes["key"], boxes["label"], boxes["unit"]]))
+                checkbox.stateChanged.connect(partial(self.csvUpdateTab, name, checkbox, boxes))
                 checkbox.setCheckState(2)
                 grid.addWidget(checkbox, 1 + i, 0, 1, 3)
 
@@ -228,26 +216,35 @@ class mainWindow(QMainWindow):
             tabWidget.addTab(wid, name)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttonBox.button(QDialogButtonBox.Ok).clicked.connect(
-            partial(self.extract2csv, tabWidget, d, line_edit_begin, line_edit_end))
+        buttonBox.button(QDialogButtonBox.Ok).clicked.connect(partial(self.extract2csv, tabWidget, d))
         buttonBox.button(QDialogButtonBox.Cancel).clicked.connect(d.close)
 
         vbox.addWidget(tabWidget)
         vbox.addWidget(buttonBox)
         d.setLayout(vbox)
 
-    def extract2csv(self, tabWidget, d, begin, end):
+    def extract2csv(self, tabWidget, d):
         name = tabWidget.tabText(tabWidget.currentIndex())
-        end_id = np.inf if str(end.text()) == "Now" else str(end.text())
+        wid = tabWidget.currentWidget()
+        start = wid.dateStart.text()
+        end = wid.dateEnd.text()
+        end = False if end == 'Now' else end
+
         fail = []
-        progress = QProgressDialog("Extracting data", "Abort Extracting", 0, len(self.tabCsv) - 1)
-        progress.setFixedSize(300, 200)
-        progress.setWindowModality(Qt.WindowModal)
-        progress.setWindowTitle("Extracting data...")
+        progress = QProgressBar()
+
+        progress.setRange(0, len(self.tabCsv))
+        d.layout().addWidget(progress)
+        progress.setValue(0)
+
         for i, device in enumerate(self.tabCsv[name]):
-            progress.setValue(i)
-            ret = self.db.extract2csv(device[0], device[1], device[2], device[3], str(begin.text()), end_id)
-            if ret is None: fail.append(device[0])
+            try:
+                dataFrame = self.db.dataBetween(device['tablename'], device['key'], start=start, end=end)
+                dataFrame.to_csv('/tmp/PFS-%s-%s.csv' % (start[:-6], device['tablename']))
+                progress.setValue(i + 1)
+            except:
+                fail.append(device['tablename'])
+
         if fail:
             self.showInformation("Extraction error on %s" % ','.join(fail))
         else:

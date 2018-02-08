@@ -1,6 +1,9 @@
+__author__ = 'alefur'
 import datetime
 
-from PyQt5.QtWidgets import QGridLayout, QGroupBox, QLabel, QLineEdit, QApplication
+from PyQt5.QtWidgets import QLineEdit, QApplication
+from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QGridLayout, QGroupBox
 
 
 class DeviceName(QLabel):
@@ -118,7 +121,6 @@ class DeviceGB(QGroupBox):
     def setNewValue(self, label, valStr):
 
         label.setText(valStr)
-        #label.setMinimumHeight(40)
         label.setMinimumWidth(9 * len(valStr))
 
     def setOnline(self):

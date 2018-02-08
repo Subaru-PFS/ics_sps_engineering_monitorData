@@ -2,13 +2,12 @@
 # encoding: utf-8
 
 
-import pickle
 from functools import partial
 
-import configparser
 import sps_engineering_Lib_dataQuery as dataQuery
 import sps_engineering_monitorData.img as imgFolder
 from sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
+from sps_engineering_Lib_dataQuery.confighandler import loadAlarm, loadConf
 
 try:
     from tabulate import tabulate
@@ -17,9 +16,9 @@ try:
 except ImportError:
     Wiki = False
 import os
-from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QMessageBox, QAction, QGridLayout, QTabWidget, QLabel, \
     QLineEdit, QCheckBox, QDialogButtonBox, QDialog, QProgressBar
+from PyQt5.QtCore import QTimer
 import datetime as dt
 from module import Module
 from PyQt5.QtGui import QPixmap, QIcon
@@ -27,7 +26,6 @@ from PyQt5.QtGui import QPixmap, QIcon
 
 class mainWindow(QMainWindow):
     cuArms = {"_r1__": "One-channel RCU",
-              "_b1__": "One-channel BCU",
               "_r0__": "Thermal RCU",
               }
 
@@ -42,10 +40,7 @@ class mainWindow(QMainWindow):
         self.moduleDict = {}
 
         self.imgPath = os.path.dirname(imgFolder.__file__)
-
         self.initialize()
-        self.getToolbar()
-        self.getModes()
 
     def initialize(self):
 
@@ -55,12 +50,9 @@ class mainWindow(QMainWindow):
 
         self.getIcons()
         self.getModule()
-
-        self.menubar = self.menuBar()
-        self.about_action = QAction('About', self)
-        self.about_action.triggered.connect(partial(self.showInformation, "monitorData 1.0.5 \n\r made for PFS by ALF"))
-        self.helpMenu = self.menubar.addMenu('&?')
-        self.helpMenu.addAction(self.about_action)
+        self.getMenu()
+        self.getToolbar()
+        self.getTimer()
 
         self.center = [300, 300]
         self.title = "ics_sps_engineering_monitorData"
@@ -71,103 +63,61 @@ class mainWindow(QMainWindow):
         self.setCentralWidget(self.mainWidget)
         self.show()
 
-    def getModes(self):
-        self.timerMode = QTimer(self)
-        self.timerMode.setInterval(3000)
-        self.timerMode.timeout.connect(self.handleModes)
-        self.timerMode.start()
+    def getMenu(self):
+
+        self.menubar = self.menuBar()
+        self.about_action = QAction('About', self)
+        self.about_action.triggered.connect(partial(self.showInformation, "monitorData 1.0.5 \n\r made for PFS by ALF"))
+        self.helpMenu = self.menubar.addMenu('&?')
+        self.helpMenu.addAction(self.about_action)
+
+    def getTimer(self):
+        self.timerData = QTimer(self)
+        self.timerData.setInterval(10000)
+        self.timerData.timeout.connect(self.updateGUI)
+        self.timerData.start()
+
+    def updateGUI(self):
+        self.handleModes()
+        for module in self.moduleDict.values():
+            module.waitforData()
 
     def handleModes(self):
-        sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
-        for moduleName, alarms in list(sortedAlarm.items()):
+        allAlarms = loadAlarm()
+        sortedAlarms = self.sortCfg(allAlarms)
+
+        for moduleName, alarms in list(sortedAlarms.items()):
             module = self.moduleDict[moduleName]
-            mode = alarms[0]['mode']
+            mode = alarms[0].mode if alarms else 'offline'
             if mode != module.mode:
                 module.setAlarms(alarms)
 
-    def readSortCfg(self, func, path):
-        sortedDict = {}
-        cfg = func(path)
-        for d in cfg:
+    def sortCfg(self, config):
+        sortedDict = {label: [] for label in list(mainWindow.cuArms.values()) + ['AIT']}
+
+        for dev in config:
             found = False
-            for cuArm, cuLabel in list(mainWindow.cuArms.items()):
-                if cuArm in d["tablename"]:
+            for cuArm in list(mainWindow.cuArms.keys()):
+                if cuArm in dev.tablename:
                     found = True
                     break
-            if not found:
-                cuLabel = "AIT"
+            cuLabel = mainWindow.cuArms[cuArm] if found else 'AIT'
 
-            if cuLabel not in iter(list(sortedDict.keys())):
-
-                sortedDict[cuLabel] = [d]
-            else:
-                sortedDict[cuLabel].append(d)
-
+            sortedDict[cuLabel].append(dev)
 
         return sortedDict
 
-    def readDeviceCfg(self, path):
-        datatype = configparser.ConfigParser()
-        datatype.read('%s/datatype.cfg' % path)
-        datatype = datatype._sections
-
-        res = []
-        allConfig = []
-        all_file = [f for f in next(os.walk(path))[-1] if '.cfg' in f]
-        for f in all_file:
-            config = configparser.ConfigParser()
-            config.readfp(open(path + f))
-            try:
-                date = config.get('config_date', 'date')
-                res.append((f, dt.datetime.strptime(date, "%d/%m/%Y")))
-            except configparser.NoSectionError:
-                pass
-
-        res.sort(key=lambda tup: tup[1])
-        config = configparser.ConfigParser()
-        config.readfp(open(path + res[-1][0]))
-        for a in config.sections():
-            if a != 'config_date':
-                allConfig.append({"tablename": a})
-                for b in config.options(a):
-                    allConfig[-1][b] = config.get(a, b)
-
-                allConfig[-1]["unit"] = ','.join(
-                    [datatype[typ.strip()]['unit'] for typ in config.get(a, "type").split(',')])
-
-                if "label_device" not in config.options(a):
-                    allConfig[-1]["label_device"] = (a.split('__')[1]).capitalize()
-                if "label" not in config.options(a):
-                    allConfig[-1]["label"] = config.get(a, "key")
-
-        return allConfig
-
-    def readAlarmCfg(self, path):
-        listAlarm = []
-        with open(path + 'mode.cfg', 'rb') as thisFile:
-            unpickler = pickle.Unpickler(thisFile)
-            modes = unpickler.load()
-
-        for actor, mode in list(modes.items()):
-            config = configparser.ConfigParser()
-            config.readfp(open(path + '%s.cfg' % mode))
-            sections = [a for a in config.sections() if actor in config.get(a, 'tablename')]
-            for a in sections:
-                dict = {"label": a, "mode": mode}
-                for b in config.options(a):
-                    dict[b] = config.get(a, b)
-                listAlarm.append(dict)
-
-        return listAlarm
-
     def getModule(self):
 
-        sortedModule = self.readSortCfg(self.readDeviceCfg, '%s/config/' % self.configPath)
-        sortedAlarm = self.readSortCfg(self.readAlarmCfg, '%s/alarm/' % self.configPath)
+        allModules = loadConf()
+        allAlarms = loadAlarm()
+
+        sortedModule = self.sortCfg(allModules)
+        sortedAlarms = self.sortCfg(allAlarms)
 
         for moduleName in sorted(sortedModule.keys()):
             devices = sortedModule[moduleName]
-            alarms = sortedAlarm[moduleName]
+            alarms = sortedAlarms[moduleName]
             module = Module(self, moduleName, devices)
             module.setAlarms(alarms)
             self.globalLayout.addWidget(module)
@@ -206,9 +156,9 @@ class mainWindow(QMainWindow):
             grid.addWidget(wid.dateStart, 0, 1)
             grid.addWidget(QLabel("To"), 0, 2)
             grid.addWidget(wid.dateEnd, 0, 3)
-            for i, boxes in enumerate(mod.devices):
-                checkbox = QCheckBox(boxes["label_device"])
-                checkbox.stateChanged.connect(partial(self.csvUpdateTab, name, checkbox, boxes))
+            for i, device in enumerate(mod.devices):
+                checkbox = QCheckBox(device.label_device)
+                checkbox.stateChanged.connect(partial(self.csvUpdateTab, name, checkbox, device))
                 checkbox.setCheckState(2)
                 grid.addWidget(checkbox, 1 + i, 0, 1, 3)
 

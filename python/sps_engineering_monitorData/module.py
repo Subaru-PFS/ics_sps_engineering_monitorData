@@ -1,14 +1,18 @@
-import pickle
-import random
-import time
+import os
+from functools import partial
+from collections import OrderedDict
+
 import psycopg2
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QGroupBox, QMenu, QAction,QPushButton
+from PyQt5.QtGui import QPixmap, QIcon, QCursor
+from PyQt5.QtCore import Qt
 
-from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QGroupBox
+from devicegb import DeviceGB
+from acquisition import Acquisition
+from alarmgb import AlarmGB
 
-from myqgroupbox import DeviceGB
-from summary import EyeButton, Acquisition, AlarmGB
+from sps_engineering_Lib_dataQuery.confighandler import readMode, writeMode
 
 
 class Module(QGroupBox):
@@ -37,10 +41,13 @@ class Module(QGroupBox):
         self.initialize()
         self.waitforData()
 
-        self.timerData = QTimer(self)
-        self.timerData.setInterval(15000)
-        self.timerData.timeout.connect(self.waitforData)
-        self.timerData.start()
+    @property
+    def actors(self):
+        return list(OrderedDict.fromkeys([device.tablename.split('__')[0] for device in self.devices]))
+
+    @property
+    def isOffline(self):
+        return True if self.mode == 'offline' else False
 
     def initialize(self):
         self.createGroupBox()
@@ -51,21 +58,26 @@ class Module(QGroupBox):
         self.alarmLayout.addWidget(self.acquisition)
 
     def setAlarms(self, alarms):
-        self.cleanAlarms()
-        self.mode = alarms[0]['mode']
+        hide = self.cleanAlarms()
+        self.mode = alarms[0].mode if alarms else 'offline'
         self.setTitle('%s - %s ' % (self.name, self.mode))
 
         for alarm in alarms:
-            self.alarmGB.append(AlarmGB(self, alarm))
-            self.alarmLayout.addWidget(self.alarmGB[-1])
+            widget = AlarmGB(self, alarm)
+            self.alarmGB.append(widget)
+            self.alarmLayout.addWidget(widget)
+            widget.hide() if hide else widget.show()
 
     def cleanAlarms(self):
-
+        hide = False
         while self.alarmGB:
             alarm = self.alarmGB[0]
+            hide = alarm.isHidden()
             self.alarmLayout.removeWidget(alarm)
             alarm.deleteLater()
             self.alarmGB.remove(alarm)
+
+        return hide
 
     def moveEye(self):
 
@@ -75,16 +87,16 @@ class Module(QGroupBox):
             pass
 
     def createGroupBox(self):
-        for i, boxes in enumerate(self.devices):
-            tableName = boxes["tablename"]
-            deviceName = boxes["label_device"]
-            keys = boxes["key"].split(',')
-            labels = boxes["label"].split(',')
-            units = boxes["unit"].split(',')
-            lowBounds = boxes["lower_bound"].split(',')
-            upBounds = boxes["upper_bound"].split(',')
+        for i, device in enumerate(self.devices):
+            tableName = device.tablename
+            deviceName = device.labelDev
+            keys = device.keys.split(',')
+            labels = device.labels.split(',')
+            units = device.units.split(',')
+            lbounds = device.lbounds.split(',')
+            ubounds = device.ubounds.split(',')
 
-            self.groupBox.append(DeviceGB(self, tableName, deviceName, keys, labels, units, lowBounds, upBounds))
+            self.groupBox.append(DeviceGB(self, tableName, deviceName, keys, labels, units, lbounds, ubounds))
             self.gbLayout.addWidget(self.groupBox[-1], (i // self.divcoeff) + 1, i % self.divcoeff)
 
     def showAll(self, bool):
@@ -134,28 +146,53 @@ class Module(QGroupBox):
         QGroupBox.resizeEvent(self, QResizeEvent)
 
     def getGroupBox(self, tableName):
-        for i, boxes in enumerate(self.devices):
-            table = boxes["tablename"]
-            if table == tableName:
+        for i, device in enumerate(self.devices):
+            if device.tablename == tableName:
                 return self.groupBox[i]
 
-    def unPickle(self, filename, empty=None):
+    def mouseReleaseEvent(self, QMouseEvent):
+        if QMouseEvent.button() == Qt.RightButton:
+            menu = QMenu(self)
 
-        try:
-            with open(self.path + filename, 'rb') as thisFile:
-                unpickler = pickle.Unpickler(thisFile)
-                return unpickler.load()
-        except IOError:
-            print("creating empty %s file" % filename)
-            var = {} if empty is None else []
-            self.doPickle(filename, var)
-            return var
-        except EOFError:
-            print("except EOFError")
-            time.sleep(0.5 + 2 * random.random())
-            return self.unPickle(filename=filename, empty=empty)
+            all_modes = [f[:-4] for f in next(os.walk(self.path))[-1] if '.cfg' in f]
+            for mode in all_modes:
+                action = QAction(mode, self)
+                action.triggered.connect(partial(self.updateMode, mode))
+                menu.addAction(action)
 
-    def doPickle(self, filename, var):
-        with open(self.path + filename, 'wb') as thisFile:
-            pickler = pickle.Pickler(thisFile)
-            pickler.dump(var)
+            menu.popup(QCursor.pos())
+
+    def updateMode(self, mode):
+        modes = readMode()
+        for actor in self.actors:
+            modes[actor] = mode
+
+        writeMode(modes)
+
+
+class EyeButton(QPushButton):
+    def __init__(self, module):
+        QPushButton.__init__(self)
+        self.module = module
+        self.setParent(module)
+        eyeOn = QPixmap()
+        eyeOff = QPixmap()
+
+        eyeOn.load('%s/%s' % (module.mainWindow.imgPath, 'eye_on.png'))
+        eyeOff.load('%s/%s' % (module.mainWindow.imgPath, 'eye_off.png'))
+        self.iconEyeOn = QIcon(eyeOn)
+        self.iconEyeOff = QIcon(eyeOff)
+
+        self.mainWindow = module.mainWindow
+        self.setFixedSize(30, 20)
+        self.showGB()
+        self.clicked.connect(self.showGB)
+
+    def showGB(self):
+        if self.module.groupBox[0].isHidden():
+            self.setIcon(self.iconEyeOff)
+            self.module.showAll(True)
+
+        else:
+            self.setIcon(self.iconEyeOn)
+            self.module.showAll(False)

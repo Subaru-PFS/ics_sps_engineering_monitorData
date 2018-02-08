@@ -3,40 +3,10 @@ __author__ = 'alefur'
 from functools import partial
 import time
 
-from PyQt5.QtGui import QPixmap, QIcon, QCursor
-from PyQt5.QtWidgets import QLabel, QMenu, QAction
-from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QDialog, QVBoxLayout, QCheckBox, QDialogButtonBox, \
-    QGroupBox
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QDialog, QVBoxLayout, QCheckBox, QDialogButtonBox
 
-
-class EyeButton(QPushButton):
-    def __init__(self, module):
-        QPushButton.__init__(self)
-        self.module = module
-        self.setParent(module)
-        eyeOn = QPixmap()
-        eyeOff = QPixmap()
-
-        eyeOn.load('%s/%s' % (module.mainWindow.imgPath, 'eye_on.png'))
-        eyeOff.load('%s/%s' % (module.mainWindow.imgPath, 'eye_off.png'))
-        self.iconEyeOn = QIcon(eyeOn)
-        self.iconEyeOff = QIcon(eyeOff)
-
-        self.mainWindow = module.mainWindow
-        self.setFixedSize(30, 20)
-        self.showGB()
-        self.clicked.connect(self.showGB)
-
-    def showGB(self):
-        if self.module.groupBox[0].isHidden():
-            self.setIcon(self.iconEyeOff)
-            self.module.showAll(True)
-
-        else:
-            self.setIcon(self.iconEyeOn)
-            self.module.showAll(False)
+from sps_engineering_Lib_dataQuery.confighandler import readTimeout, writeTimeout
 
 
 class Acquisition(QPushButton):
@@ -60,7 +30,7 @@ class Acquisition(QPushButton):
 
     @property
     def devices(self):
-        return [dev["tablename"] for dev in self.module.devices]
+        return [device.tablename for device in self.module.devices]
 
     @property
     def mainWindow(self):
@@ -76,7 +46,7 @@ class Acquisition(QPushButton):
 
     @property
     def timeout_ack(self):
-        return self.module.unPickle('timeoutAck', empty='list')
+        return readTimeout()
 
     def getTimeout(self):
         self.list_timeout = [d for d in self.devices]
@@ -119,7 +89,7 @@ class Acquisition(QPushButton):
         else:
             timeout_ack.append(str(checkbox.text()))
 
-        self.module.doPickle('timeoutAck', timeout_ack)
+        writeTimeout(timeout_ack)
 
     def timeoutShow(self, i=0):
         timeoutShow = QTimer(self.mainWindow)
@@ -134,7 +104,7 @@ class Acquisition(QPushButton):
                 else:
                     i = 0
             else:
-                if self.aliveDevices:
+                if self.aliveDevices and not self.module.isOffline:
                     self.setColorText("ACQUISITION", "green", 160)
                 else:
                     self.setColorText("OFFLINE", "red", 160)
@@ -178,87 +148,3 @@ class Acquisition(QPushButton):
                 "QPushButton { color : white; background: qradialgradient(cx:0, cy:0, radius: 1,fx:0.7, fy:0.5, stop:0 rgba(255,190,0, 90%), stop:1 rgba(255,130,0, 90%));border-radius: 9px; font: 13pt;}")
 
         self.setFixedSize(size, 36)
-
-
-class AlarmGB(QGroupBox):
-    def __init__(self, module, alarm):
-        self.module = module
-        self.alarm = alarm
-
-        if "gatevalve" in alarm["tablename"]:
-            self.stateGatevalve = {0: "OPEN", 1: "CLOSED", 2: "UNKNOWN", 3: "INVALID"}
-
-        QGroupBox.__init__(self)
-        self.setTitle(alarm["label"])
-
-        self.grid = QGridLayout()
-        self.value = QLabel()
-
-        self.grid.addWidget(self.value, 0, 0)
-        self.setLayout(self.grid)
-        self.value.setStyleSheet("QLabel{font-size: 11pt; qproperty-alignment: AlignCenter; color:white;}")
-        self.getValue()
-
-    @property
-    def isEffective(self):
-
-        listAlarm = self.module.unPickle('listAlarm')
-        return listAlarm[self.name]
-
-    @property
-    def name(self):
-        return self.alarm["label"].lower()
-
-    def setColor(self, color):
-        if color == "red":
-            self.setStyleSheet(
-                "QGroupBox {font-size: 9pt; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #f43131, stop: 1 #5e1414);border: 1px solid gray;border-radius: 3px;margin-top: 1ex;} " +
-                "QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top center; padding: 0 3px;}")
-        elif color == "green":
-            self.setStyleSheet(
-                "QGroupBox {font-size: 9pt; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #45f42e, stop: 1 #195511);border: 1px solid gray;border-radius: 3px;margin-top: 1ex;} " +
-                "QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top center; padding: 0 3px;}")
-
-        elif color == "black":
-            self.setStyleSheet(
-                "QGroupBox {font-size: 9pt; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop:0 rgba(40,40,40, 90%), stop:1 rgba(0,0,0, 90%));border: 1px solid gray;border-radius: 3px;margin-top: 1ex;} " + "QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top center; padding: 0 3px;}")
-
-    def getValue(self):
-        dataFrame = self.module.mainWindow.db.last(self.alarm["tablename"], self.alarm["key"])
-
-        try:
-            val = dataFrame[self.alarm["key"]]
-            if self.isEffective:
-                if not (float(self.alarm["lower_bound"]) <= val < float(self.alarm["upper_bound"])):
-                    self.setColor("red")
-                else:
-                    self.setColor("green")
-            else:
-                self.setColor("black")
-
-            txt = '{:g}'.format(val) if not hasattr(self, "stateGatevalve") else self.stateGatevalve[val]
-
-        except TypeError:
-            txt = 'nan'
-
-        self.value.setText(txt)
-
-    def mouseReleaseEvent(self, QMouseEvent):
-        if QMouseEvent.button() == Qt.RightButton:
-            menu = QMenu(self)
-
-            action = QAction('Desactivate', self) if self.isEffective else QAction('Activate', self)
-            action.triggered.connect(self.updateAlarmState)
-
-            menu.addAction(action)
-            menu.popup(QCursor.pos())
-
-    def updateAlarmState(self):
-        listAlarm = self.module.unPickle('listAlarm')
-
-        if listAlarm[self.name]:
-            listAlarm[self.name] = False
-        else:
-            listAlarm[self.name] = True
-
-        self.module.doPickle('listAlarm', listAlarm)

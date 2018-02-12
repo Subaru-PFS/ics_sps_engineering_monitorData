@@ -157,7 +157,7 @@ class mainWindow(QMainWindow):
             grid.addWidget(QLabel("To"), 0, 2)
             grid.addWidget(wid.dateEnd, 0, 3)
             for i, device in enumerate(mod.devices):
-                checkbox = QCheckBox(device.label_device)
+                checkbox = QCheckBox(device.deviceLabel)
                 checkbox.stateChanged.connect(partial(self.csvUpdateTab, name, checkbox, device))
                 checkbox.setCheckState(2)
                 grid.addWidget(checkbox, 1 + i, 0, 1, 3)
@@ -189,11 +189,12 @@ class mainWindow(QMainWindow):
 
         for i, device in enumerate(self.tabCsv[name]):
             try:
-                dataFrame = self.db.dataBetween(device['tablename'], device['key'], start=start, end=end)
-                dataFrame.to_csv('/tmp/PFS-%s-%s.csv' % (start[:-6], device['tablename']))
+                dataFrame = self.db.dataBetween(device.tablename, ','.join(device.keys), start=start, end=end)
+                dataFrame.to_csv('/tmp/PFS-%s-%s.csv' % (start[:-6], device.tablename))
                 progress.setValue(i + 1)
-            except:
-                fail.append(device['tablename'])
+            except Exception as e:
+                print (e)
+                fail.append(device.tablename)
 
         if fail:
             self.showInformation("Extraction error on %s" % ','.join(fail))

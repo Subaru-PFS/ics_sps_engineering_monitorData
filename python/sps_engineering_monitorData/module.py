@@ -87,16 +87,8 @@ class Module(QGroupBox):
             pass
 
     def createGroupBox(self):
-        for i, device in enumerate(self.devices):
-            tableName = device.tablename
-            deviceName = device.labelDev
-            keys = device.keys.split(',')
-            labels = device.labels.split(',')
-            units = device.units.split(',')
-            lbounds = device.lbounds.split(',')
-            ubounds = device.ubounds.split(',')
-
-            self.groupBox.append(DeviceGB(self, tableName, deviceName, keys, labels, units, lbounds, ubounds))
+        for i, deviceConf in enumerate(self.devices):
+            self.groupBox.append(DeviceGB(self, deviceConf))
             self.gbLayout.addWidget(self.groupBox[-1], (i // self.divcoeff) + 1, i % self.divcoeff)
 
     def showAll(self, bool):
@@ -141,9 +133,12 @@ class Module(QGroupBox):
             self.acquisition.network = False
             self.mainWindow.db.close()
 
-    def resizeEvent(self, QResizeEvent):
-        self.moveEye()
-        QGroupBox.resizeEvent(self, QResizeEvent)
+    def updateMode(self, mode):
+        modes = readMode()
+        for actor in self.actors:
+            modes[actor] = mode
+
+        writeMode(modes)
 
     def getGroupBox(self, tableName):
         for i, device in enumerate(self.devices):
@@ -162,12 +157,9 @@ class Module(QGroupBox):
 
             menu.popup(QCursor.pos())
 
-    def updateMode(self, mode):
-        modes = readMode()
-        for actor in self.actors:
-            modes[actor] = mode
-
-        writeMode(modes)
+    def resizeEvent(self, QResizeEvent):
+        self.moveEye()
+        QGroupBox.resizeEvent(self, QResizeEvent)
 
 
 class EyeButton(QPushButton):

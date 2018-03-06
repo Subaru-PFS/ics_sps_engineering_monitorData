@@ -25,9 +25,9 @@ from PyQt5.QtGui import QPixmap, QIcon
 
 
 class mainWindow(QMainWindow):
-    cuArms = {"_r1__": "One-channel RCU",
-              "_r0__": "Thermal RCU",
-              }
+    cuArms = {'_r1__': 'SM1 RCU',
+              '_b1__': 'SM1 BCU',
+              '_r0__': 'Thermal RCU'}
 
     def __init__(self, display, ip, port):
         super(mainWindow, self).__init__()

@@ -33,7 +33,12 @@ class AlarmGB(QGroupBox):
     def isEffective(self):
 
         alarmState = readState()
-        return alarmState[self.name]
+        try:
+            state = alarmState[self.name]
+        except KeyError:
+            state = False
+            alarmState[self.name] = state
+        return state
 
     @property
     def name(self):

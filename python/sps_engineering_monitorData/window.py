@@ -1,28 +1,29 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-
-from functools import partial
-
-import sps_engineering_Lib_dataQuery as dataQuery
-import sps_engineering_monitorData.img as imgFolder
-from sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
-from sps_engineering_Lib_dataQuery.confighandler import loadAlarm, loadConf
-
 try:
     from tabulate import tabulate
 
     Wiki = True
 except ImportError:
     Wiki = False
+
+
+from functools import partial
+
+import sps_engineering_Lib_dataQuery as dataQuery
+import sps_engineering_monitorData as monitorData
 import os
+import datetime as dt
+
+from sps_engineering_Lib_dataQuery.databasemanager import DatabaseManager
+from sps_engineering_Lib_dataQuery.confighandler import loadAlarm, loadConf
+
 from PyQt5.QtWidgets import QWidget, QMainWindow, QVBoxLayout, QMessageBox, QAction, QGridLayout, QTabWidget, QLabel, \
     QLineEdit, QCheckBox, QDialogButtonBox, QDialog, QProgressBar
 from PyQt5.QtCore import QTimer
-import datetime as dt
+from PyQt5.QtGui import QPixmap, QIcon, QResizeEvent
 from module import Module
-from PyQt5.QtGui import QPixmap, QIcon
-
 
 class mainWindow(QMainWindow):
     cuArms = {'_r1__': 'SM1 RCU',
@@ -35,11 +36,11 @@ class mainWindow(QMainWindow):
         self.display = display
         self.db = DatabaseManager(ip, port)
         self.networkError = False
-        self.configPath = os.path.dirname(dataQuery.__file__)
+        self.alarmPath = os.path.abspath(os.path.join(os.path.dirname(dataQuery.__file__), '../..', 'alarm'))
         self.tabCsv = {}
         self.moduleDict = {}
 
-        self.imgPath = os.path.dirname(imgFolder.__file__)
+        self.imgPath = os.path.abspath(os.path.join(os.path.dirname(monitorData.__file__), '../..', 'img'))
         self.initialize()
 
     def initialize(self):

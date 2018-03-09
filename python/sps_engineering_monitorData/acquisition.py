@@ -4,7 +4,7 @@ from functools import partial
 import time
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QGridLayout, QPushButton, QDialog, QVBoxLayout, QCheckBox, QDialogButtonBox
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QDialog, QVBoxLayout, QCheckBox, QDialogButtonBox, QSizePolicy
 
 from sps_engineering_Lib_dataQuery.confighandler import readTimeout, writeTimeout
 
@@ -14,10 +14,12 @@ class Acquisition(QPushButton):
 
     def __init__(self, module):
         QPushButton.__init__(self, "ACQUISITION")
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        self.setMinimumHeight(35)
         self.module = module
         self.network = True
 
-        self.setColorText("ACQUISITION", "green", 160)
+        self.setColorText("     ACQUISITION     ", "green")
 
         self.list_timeout = []
         self.last_date = {}
@@ -99,18 +101,18 @@ class Acquisition(QPushButton):
         if self.network:
             if self.vistimeout:
                 if i < len(self.vistimeout):
-                    self.setColorText("TIME OUT ON %s" % self.vistimeout[i], "red", 300)
+                    self.setColorText("TIME OUT ON %s" % self.vistimeout[i], "red")
                     i += 1
                 else:
                     i = 0
             else:
                 if self.aliveDevices and not self.module.isOffline:
-                    self.setColorText("ACQUISITION", "green", 160)
+                    self.setColorText("     ACQUISITION     ", "green")
                 else:
-                    self.setColorText("OFFLINE", "red", 160)
+                    self.setColorText("     OFFLINE     ", "red")
 
         else:
-            self.setColorText("SERVER LOST", "orange", 160)
+            self.setColorText("     SERVER LOST     ", "orange")
 
         self.timeoutShow(i)
 
@@ -133,7 +135,7 @@ class Acquisition(QPushButton):
         else:
             self.module.getGroupBox(table).setOnline()
 
-    def setColorText(self, text, color, size):
+    def setColorText(self, text, color):
         self.setText(text)
 
         if color == "green":
@@ -147,4 +149,3 @@ class Acquisition(QPushButton):
             self.setStyleSheet(
                 "QPushButton { color : white; background: qradialgradient(cx:0, cy:0, radius: 1,fx:0.7, fy:0.5, stop:0 rgba(255,190,0, 90%), stop:1 rgba(255,130,0, 90%));border-radius: 9px; font: 13pt;}")
 
-        self.setFixedSize(size, 36)

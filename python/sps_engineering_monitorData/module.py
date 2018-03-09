@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 import psycopg2
 
-from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QGroupBox, QMenu, QAction,QPushButton
+from PyQt5.QtWidgets import QGridLayout, QHBoxLayout, QGroupBox, QMenu, QAction,QPushButton,QLabel
 from PyQt5.QtGui import QPixmap, QIcon, QCursor
 from PyQt5.QtCore import Qt
 
@@ -23,11 +23,9 @@ class Module(QGroupBox):
         self.name = name
         self.devices = devices
 
-        self.path = '%s/alarm/' % self.mainWindow.configPath
-
         self.groupBox = []
         self.alarmGB = []
-        self.divcoeff = 3
+        self.divcoeff = 5
 
         self.cLayout = QHBoxLayout()
         self.alarmLayout = QHBoxLayout()
@@ -54,7 +52,6 @@ class Module(QGroupBox):
 
         self.eyeButton = EyeButton(self)
         self.acquisition = Acquisition(self)
-
         self.alarmLayout.addWidget(self.acquisition)
 
     def setAlarms(self, alarms):
@@ -94,32 +91,20 @@ class Module(QGroupBox):
     def showAll(self, bool):
 
         for groupbox in self.groupBox:
-            if not bool:
-                groupbox.hide()
-            else:
-                groupbox.show()
+            groupbox.hide() if not bool else groupbox.show()
 
         for alarm in self.alarmGB:
-            if not bool:
-                alarm.show()
-            else:
-                alarm.hide()
+            alarm.show() if not bool else alarm.hide()
 
-        if bool:
-            self.setMaximumHeight(800)
-        else:
-            self.setMaximumHeight(80)
-            self.mainWindow.resize(20, 20)
+        try:
+            self.acquisition.hide() if bool else self.acquisition.show()
+        except AttributeError:
+            pass
 
-    def showhideConfig(self, button_arrow):
+        self.adjustSize()
+        self.mainWindow.mainWidget.adjustSize()
+        self.mainWindow.adjustSize()
 
-        if not self.groupBox[0].isHidden():
-            self.showAll(False)
-            button_arrow.setIcon(self.mainWindow.iconArrRight)
-
-        else:
-            self.showAll(True)
-            button_arrow.setIcon(self.mainWindow.iconArrLeft)
 
     def waitforData(self):
         try:
@@ -149,7 +134,7 @@ class Module(QGroupBox):
         if QMouseEvent.button() == Qt.RightButton:
             menu = QMenu(self)
 
-            all_modes = [f[:-4] for f in next(os.walk(self.path))[-1] if '.cfg' in f]
+            all_modes = [f[:-4] for f in next(os.walk(self.mainWindow.alarmPath))[-1] if '.cfg' in f]
             for mode in all_modes:
                 action = QAction(mode, self)
                 action.triggered.connect(partial(self.updateMode, mode))
@@ -177,11 +162,12 @@ class EyeButton(QPushButton):
 
         self.mainWindow = module.mainWindow
         self.setFixedSize(30, 20)
-        self.showGB()
         self.clicked.connect(self.showGB)
+        self.setCheckable(True)
+        self.showGB()
 
     def showGB(self):
-        if self.module.groupBox[0].isHidden():
+        if self.isChecked():
             self.setIcon(self.iconEyeOff)
             self.module.showAll(True)
 

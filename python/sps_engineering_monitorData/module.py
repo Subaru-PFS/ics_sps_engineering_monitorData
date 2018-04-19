@@ -91,7 +91,7 @@ class Module(QGroupBox):
                 self.groupBox.append(groupbox)
                 self.gbLayout.addWidget(groupbox, (i // self.divcoeff) + 1, i % self.divcoeff)
             except Exception as e:
-                print (e)
+                print (e, deviceConf.tablename)
 
     def showAll(self, bool):
 
@@ -131,8 +131,8 @@ class Module(QGroupBox):
         writeMode(modes)
 
     def getGroupBox(self, tableName):
-        for i, device in enumerate(self.devices):
-            if device.tablename == tableName:
+        for i, groupbox in enumerate(self.groupBox):
+            if groupbox.tablename == tableName:
                 return self.groupBox[i]
 
     def mouseReleaseEvent(self, QMouseEvent):

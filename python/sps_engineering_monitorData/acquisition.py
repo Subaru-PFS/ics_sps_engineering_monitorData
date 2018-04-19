@@ -116,8 +116,8 @@ class Acquisition(QPushButton):
 
         self.timeoutShow(i)
 
-    def checkTimeout(self, table, tai):
-
+    def checkTimeout(self, table, tai=False):
+        tai = tai if tai else self.last_date[table]
         if tai != self.last_date[table]:
             if self.last_date[table] != 0:
                 if table in self.list_timeout:

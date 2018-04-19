@@ -85,8 +85,13 @@ class Module(QGroupBox):
 
     def createGroupBox(self):
         for i, deviceConf in enumerate(self.devices):
-            self.groupBox.append(DeviceGB(self, deviceConf))
-            self.gbLayout.addWidget(self.groupBox[-1], (i // self.divcoeff) + 1, i % self.divcoeff)
+            groupbox = DeviceGB(self, deviceConf)
+            try:
+                groupbox.testData()
+                self.groupBox.append(groupbox)
+                self.gbLayout.addWidget(groupbox, (i // self.divcoeff) + 1, i % self.divcoeff)
+            except Exception as e:
+                print (e)
 
     def showAll(self, bool):
 

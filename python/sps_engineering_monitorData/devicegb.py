@@ -117,19 +117,24 @@ class DeviceGB(QGroupBox):
         self.setOffline()
 
     def waitforData(self):
+        try:
+            dataFrame = self.module.mainWindow.db.last(self.tablename, self.sqlRequest)
+            self.module.acquisition.checkTimeout(self.tablename, dataFrame['tai'])
+            self.setTitle(dataFrame.strdate)
 
+            for key in self.keys:
+                labelWidget = self.dict_label[key]
+
+                value = dataFrame[key]
+                labelWidget.setNewValue(value)
+
+        except ValueError:
+            self.module.acquisition.checkTimeout(self.tablename)
+
+    def testData(self):
         dataFrame = self.module.mainWindow.db.last(self.tablename, self.sqlRequest)
 
-        self.module.acquisition.checkTimeout(self.tablename, dataFrame['tai'])
-        self.setTitle(dataFrame.strdate)
 
-        for key in self.keys:
-             labelWidget = self.dict_label[key]
-
-             value = dataFrame[key]
-             labelWidget.setNewValue(value)
-
-    #
     def setOnline(self):
         self.setStyleSheet(
             "QGroupBox {font-size:12px; background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #E0E0E0, stop: 1 #FFFFFF);border: 2px solid gray;border-radius: 5px;} QGroupBox::title {subcontrol-origin: margin;subcontrol-position: top right; padding: 0 3px;}")

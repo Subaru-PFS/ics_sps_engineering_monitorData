@@ -4,7 +4,7 @@ import os
 import sys
 
 from PyQt5.QtWidgets import QApplication
-from window import mainWindow
+from window import MainWindow
 import argparse
 
 def main():
@@ -13,11 +13,13 @@ def main():
                         help='PostgreSQL host')
     parser.add_argument('--port', default=5432, type=int, nargs='?',
                         help='PostgreSQL port')
+    parser.add_argument('--password', default='', type=str, nargs='?',
+                        help='PostgreSQL password')
     args = parser.parse_args()
     app = QApplication(sys.argv)
 
     display = app.desktop().screenGeometry().width(), app.desktop().screenGeometry().height()
-    w = mainWindow(display, args.host, args.port)
+    w = MainWindow(display, args.host, args.port, args.password)
     sys.exit(app.exec_())
 
 

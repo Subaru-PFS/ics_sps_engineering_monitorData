@@ -25,16 +25,17 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPixmap, QIcon, QResizeEvent
 from module import Module
 
-class mainWindow(QMainWindow):
+class MainWindow(QMainWindow):
     cuArms = {'_r1__': 'SM1 RCU',
               '_b1__': 'SM1 BCU',
+              '_n1__': 'SM1 NCU',
               }
 
-    def __init__(self, display, ip, port):
-        super(mainWindow, self).__init__()
+    def __init__(self, display, ip, port, password):
+        super(MainWindow, self).__init__()
 
         self.display = display
-        self.db = DatabaseManager(ip, port)
+        self.db = DatabaseManager(ip, port,password)
         self.networkError = False
         self.alarmPath = os.path.abspath(os.path.join(os.path.dirname(dataQuery.__file__), '../..', 'alarm'))
         self.tabCsv = {}
@@ -94,15 +95,15 @@ class mainWindow(QMainWindow):
                 module.setAlarms(alarms)
 
     def sortCfg(self, config):
-        sortedDict = {label: [] for label in list(mainWindow.cuArms.values()) + ['AIT']}
+        sortedDict = {label: [] for label in list(MainWindow.cuArms.values()) + ['AIT']}
 
         for dev in config:
             found = False
-            for cuArm in list(mainWindow.cuArms.keys()):
+            for cuArm in list(MainWindow.cuArms.keys()):
                 if cuArm in dev.tablename:
                     found = True
                     break
-            cuLabel = mainWindow.cuArms[cuArm] if found else 'AIT'
+            cuLabel = MainWindow.cuArms[cuArm] if found else 'AIT'
 
             sortedDict[cuLabel].append(dev)
 

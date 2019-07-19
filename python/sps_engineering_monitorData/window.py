@@ -8,7 +8,6 @@ try:
 except ImportError:
     Wiki = False
 
-
 from functools import partial
 
 import sps_engineering_Lib_dataQuery as dataQuery
@@ -25,17 +24,16 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPixmap, QIcon, QResizeEvent
 from module import Module
 
+
 class MainWindow(QMainWindow):
     cuArms = {'_r1__': 'SM1 RCU',
               '_b1__': 'SM1 BCU',
-              '_n1__': 'SM1 NCU',
               }
 
-    def __init__(self, display, ip, port, password):
+    def __init__(self, **kwargs):
         super(MainWindow, self).__init__()
 
-        self.display = display
-        self.db = DatabaseManager(ip, port,password)
+        self.db = DatabaseManager(**kwargs)
         self.networkError = False
         self.alarmPath = os.path.abspath(os.path.join(os.path.dirname(dataQuery.__file__), '../..', 'alarm'))
         self.tabCsv = {}
@@ -195,7 +193,7 @@ class MainWindow(QMainWindow):
                 dataFrame.to_csv('/tmp/PFS-%s-%s.csv' % (start[:-6], device.tablename))
                 progress.setValue(i + 1)
             except Exception as e:
-                print (e)
+                print(e)
                 fail.append(device.tablename)
 
         if fail:
